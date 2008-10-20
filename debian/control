@@ -1,0 +1,13 @@
+Source: tone-generator
+Priority: optional
+Maintainer: Janos Kovacs <janos.f.kovacs@nokia.com>
+Build-Depends: debhelper (>= 5.0.0), cdbs, autotools-dev, check, libglib2.0-dev, libpulse-dev, libpulse-mainloop-glib0, libdbus-1-dev
+Standards-Version: 3.7.2.2
+Section: sound
+
+Package: tone-generator
+Section: sound
+Architecture: any
+Depends: ${shlibs:Depends}, libpulse0, libpulse-mainloop-glib0, libdbus-glib-1-2
+Description: tonegend
+ tone generator daemon for call progress indication and DTMF

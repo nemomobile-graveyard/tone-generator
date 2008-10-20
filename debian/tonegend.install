@@ -1,0 +1,3 @@
+/etc/init.d/tone-generator
+/etc/dbus-1/system.d/tone-generator.conf
+/usr/bin/tonegend
