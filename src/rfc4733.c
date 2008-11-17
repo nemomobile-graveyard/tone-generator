@@ -99,6 +99,7 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
 #if 0
         case ??:     indtype = TONE_DIAL;        break;
 #endif
+        case 66:     indtype = TONE_BUSY;        break;
         case 72:     indtype = TONE_BUSY;        break;
         case 73:     indtype = TONE_CONGEST;     break;
         case 256:    indtype = TONE_RADIO_ACK;   break;
