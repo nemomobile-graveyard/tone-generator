@@ -1,0 +1,15 @@
+author "Janos Kovacs"
+description "This init script starts the tone generator daemon"
+
+start on started dbus
+stop on stopped dbus
+
+console output
+
+script 
+        echo "Starting tonegend"
+        /usr/sbin/waitdbus system
+        exec /usr/bin/tonegend -s cept
+end script
+
+respawn

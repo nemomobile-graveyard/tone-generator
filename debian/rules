@@ -12,6 +12,9 @@ DEB_DH_STRIP_ARGS = --dbg-package=tone-generator-dbg
 
 makebuilddir:: stamp-autogen
 
+binary-install/tone-generator::
+	dh_installupstart --init-script=tonegend
+	
 stamp-autogen:
 	./autogen.sh
 	touch $@
@@ -20,11 +23,9 @@ clean::
 	rm -f stamp-autogen configure aclocal.m4
 	find -name Makefile.in -exec rm -f '{}' ';'
 
-install/tonegend::
-	install -d $(CURDIR)/debian/tmp/etc/init.d
+install/tone-generator::
 	install -d $(CURDIR)/debian/tmp/etc/dbus-1/system.d
 	install -d $(CURDIR)/debian/tmp/usr/bin
 	install -m 755 $(CURDIR)/src/tonegend $(CURDIR)/debian/tmp/usr/bin/tonegend
-	install -m 755 $(CURDIR)/debian/tonegend-init.d $(CURDIR)/debian/tmp/etc/init.d/tone-generator
-	install -m 644 $(CURDIR)/debian/tonegend-dbus.conf $(CURDIR)/debian/tmp/etc/dbus-1/system.d/tone-generator.conf
+	install -m 644 $(CURDIR)/debian/tone-generator.conf $(CURDIR)/debian/tmp/etc/dbus-1/system.d/tone-generator.conf
 

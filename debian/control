@@ -1,7 +1,7 @@
 Source: tone-generator
 Priority: optional
 Maintainer: Janos Kovacs <janos.f.kovacs@nokia.com>
-Build-Depends: debhelper (>= 5.0.0), cdbs, autotools-dev, check, libglib2.0-dev, libpulse-dev, libdbus-1-dev, libdbus-glib-1-dev
+Build-Depends: debhelper (>= 5.0.0), cdbs, autotools-dev, check, libglib2.0-dev, libpulse-dev, libdbus-1-dev, libdbus-glib-1-dev, upstart-dev
 Standards-Version: 3.8.0
 Section: sound
 
