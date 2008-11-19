@@ -26,6 +26,9 @@ static char *service = "com.Nokia.Telephony.Tones";
 
 int dbusif_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     return 0;
 }
 
@@ -37,7 +40,6 @@ struct dbusif *dbusif_create(struct tonegend *tonegend)
 
     struct dbusif   *dbusif = NULL;
     DBusConnection  *conn   = NULL;
-    GHashTable      *hash   = NULL;
     DBusError        err;
     int              ret;
 
@@ -117,6 +119,11 @@ int dbusif_register_method(struct tonegend *tonegend,
 int dbusif_unregister_method(struct tonegend *tonegend, char *intf,
                              char *memb, char *sign)
 {
+    (void)tonegend;
+    (void)intf;
+    (void)memb;
+    (void)sign;
+
     return 0;
 }
 
@@ -128,7 +135,6 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
     struct dbusif   *dbusif = (struct dbusif *)user_data;
     struct tonegend *tonegend = dbusif->tonegend;
     DBusMessage     *reply  = NULL;
-    int              ret;
     int            (*method)(DBusMessage *, struct tonegend *);
     const char      *intf;
     const char      *memb;
@@ -137,6 +143,8 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
     const char      *errname;
     char             errdesc[256];
     int              success;
+
+    (void)conn;
 
     if (dbus_message_get_type(msg) != DBUS_MESSAGE_TYPE_METHOD_CALL)
         TRACE("%s(): ignoring non method_call's", __FUNCTION__);

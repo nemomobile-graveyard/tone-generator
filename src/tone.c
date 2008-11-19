@@ -27,7 +27,9 @@ static inline void singen_init(struct singen *singen, uint32_t freq,
 {
     double w = 2.0 * M_PI * ((double)freq / (double)rate);
 
+#if 0
     if (volume < 0  ) volume = 0;
+#endif
     if (volume > 100) volume = 100;
 
     singen->m = 2.0 * cos(w) * (AMPLITUDE * OFFSET);
@@ -52,6 +54,9 @@ static inline int32_t singen_write(struct singen *singen)
 
 int tone_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     return 0;
 }
 
@@ -74,7 +79,7 @@ struct tone *tone_create(struct stream *stream,
         return NULL;
 
     if ((tone = (struct tone *)malloc(sizeof(*tone))) == NULL) {
-        LOG_ERROR("%s(): Can't allocate memory");
+        LOG_ERROR("%s(): Can't allocate memory", __FUNCTION__);
         return NULL;
     }
     memset(tone, 0, sizeof(*tone));
@@ -219,7 +224,6 @@ void tone_destroy_callback(void *data)
 {
     struct stream *stream;
     struct tone   *tone;
-    struct tone   *next;
 
     if ((tone = (struct tone *)data) != NULL) {
         stream = tone->stream;

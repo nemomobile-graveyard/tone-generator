@@ -42,6 +42,7 @@ struct cmdopt {
     int     uid;
     char   *path;
     int     standard;
+    int     interactive;
 };
 
 
@@ -54,7 +55,7 @@ static char      *pa_server_name;
 static GMainLoop *main_loop;
 
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     struct sigaction sa;
     struct tonegend tonegend;
@@ -64,6 +65,7 @@ main(int argc, char **argv)
     cmdopt.uid = -1;
     cmdopt.path = NULL;
     cmdopt.standard = STD_CEPT;
+    cmdopt.interactive = 0;
 
     parse_options(argc, argv, &cmdopt);
 
@@ -117,11 +119,12 @@ main(int argc, char **argv)
         return EIO;
     }
 
-    if (!cmdopt.daemon) {
+    if (!cmdopt.daemon && cmdopt.interactive) {
         if (!(tonegend.intact_ctx = interact_create(&tonegend,fileno(stdin)))){
             LOG_ERROR("Can't setup interactive console");
             return EIO;
         }
+        printf("Running in interactive mode\n");
     }
 
     indicator_set_standard(cmdopt.standard);
@@ -139,8 +142,10 @@ main(int argc, char **argv)
 
 static void usage(int argc, char **argv, int exit_code)
 {
-    printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}]\n",
-           basename(argv[0]));
+    (void)argc;
+
+    printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}] "
+           "[-i]\n", basename(argv[0]));
     exit(exit_code);
 }
 
@@ -150,7 +155,7 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
     int option;
     struct passwd *pwd;
 
-    while ((option = getopt(argc, argv, "du:s:h")) != -1) {
+    while ((option = getopt(argc, argv, "du:s:hi")) != -1) {
         switch (option) {
 
         case 'h':
@@ -159,6 +164,10 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 
         case 'd':
             cmdopt->daemon = 1;
+            break;
+
+        case 'i':
+            cmdopt->interactive = 1;
             break;
 
         case 'u':
@@ -207,7 +216,11 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 
 static void signal_handler(int signo, siginfo_t *info, void *data)
 {
+#if 0
     ucontext_t *uc = (ucontext_t *)data;
+#endif
+    (void)info;
+    (void)data;
 
     switch (signo) {
     case SIGHUP:
@@ -228,7 +241,6 @@ static int daemonize(uid_t uid, const char *path)
 {
     pid_t   pid;
     int     fd;
-    int     sts;
 
 
     if ((pid = fork()) < 0)

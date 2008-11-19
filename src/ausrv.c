@@ -33,6 +33,8 @@ static char *pa_client_name;
 
 int ausrv_init(int argc, char **argv)
 {
+    (void)argc;
+
     char *name = basename(argv[0]);
 
     pa_client_name = name ? strdup(name) : "tonegend";
@@ -174,6 +176,7 @@ static void event_callback(pa_context                   *context,
 {
     struct ausrv *ausrv = (struct ausrv *)userdata;
 
+    (void)idx;
   
     if (ausrv == NULL || ausrv->context != context)
         LOG_ERROR("%s(): Confused with data structures", __FUNCTION__);

@@ -25,6 +25,9 @@ static void drain_callback(pa_stream *, int, void *);
 
 int stream_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     return 0;
 }
 
@@ -177,15 +180,19 @@ static void state_callback(pa_stream *pastr, void *userdata)
 static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 {
     struct stream *stream = (struct stream *)userdata;
+#if 0
     struct tone   *tone;
     struct tone   *next;
+#endif
     int16_t       *samples;
-    int32_t        s;
     int            length;
+#if 0
+    int32_t        s;
     double         rad, t;
     double         d;
     uint32_t       it;
     int            i;
+#endif
 
     if (!stream || stream->pastr != pastr) {
         LOG_ERROR("%s(): Confused with data structures", __FUNCTION__);

@@ -53,6 +53,9 @@ static void ringtone(struct ausrv *ausrv)
 
 int interact_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+     
     return 0;
 }
 
@@ -61,7 +64,7 @@ struct interact *interact_create(struct tonegend *tonegend, int fd)
     struct interact *interact = NULL;
 
     if ((interact = (struct interact *)malloc(sizeof(*interact))) == NULL) {
-        LOG_ERROR("%s(): Can't allocate memory");
+        LOG_ERROR("%s(): Can't allocate memory", __FUNCTION__);
         goto failed;
     }
     memset(interact, 0, sizeof(*interact));
@@ -99,6 +102,9 @@ static gboolean handle_input(GIOChannel *ch, GIOCondition cond, gpointer data)
     struct ausrv     *ausrv    = tonegend->ausrv_ctx;
     int               cnt;
     char              cmd;
+
+    (void)ch;
+    (void)cond;
         
     for (;;) {
         if ((cnt = read(0, &cmd, 1)) != 1) {

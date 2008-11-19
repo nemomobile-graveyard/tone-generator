@@ -41,6 +41,9 @@ static struct method  method_defs[] = {
 
 int rfc4733_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     return 0;
 }
 
@@ -125,6 +128,8 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
 static int stop_tone(DBusMessage *msg, struct tonegend *tonegend)
 {
     struct ausrv *ausrv = tonegend->ausrv_ctx;
+
+    (void)msg;
 
     TRACE("%s()", __FUNCTION__);
 
