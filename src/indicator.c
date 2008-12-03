@@ -30,7 +30,7 @@ int indicator_init(int argc, char **argv)
 }
 
 
-void indicator_play(struct ausrv *ausrv, int type, uint32_t vol)
+void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
 {
     struct stream *stream = stream_find(ausrv, ind_stream);
     
@@ -68,14 +68,14 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol)
     case TONE_BUSY:
         switch (standard) {
         case STD_CEPT:
-            tone_create(stream, type, 425, vol, 1000000, 500000, 0,0);
+            tone_create(stream, type, 425, vol, 1000000, 500000, 0,dur);
             break;
         case STD_ANSI:
-            tone_create(stream, type, 480, (vol*7)/10, 1000000, 500000, 0,0);
-            tone_create(stream, type, 620, (vol*7)/10, 1000000, 500000, 0,0);
+            tone_create(stream, type, 480, (vol*7)/10, 1000000, 500000, 0,dur);
+            tone_create(stream, type, 620, (vol*7)/10, 1000000, 500000, 0,dur);
             break;
         case STD_JAPAN:
-            tone_create(stream, type, 400, vol, 1000000, 500000, 0,0);
+            tone_create(stream, type, 400, vol, 1000000, 500000, 0,dur);
             break;
         }
         break;

@@ -116,10 +116,7 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
             return FALSE;
         }
 
-        if (duration)
-            TRACE("%s(): duration ignored for event %d", __FUNCTION__, event); 
-
-        indicator_play(ausrv, indtype, volume);
+        indicator_play(ausrv, indtype, volume, duration * 1000);
     }
 
     return TRUE;

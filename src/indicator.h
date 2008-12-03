@@ -19,7 +19,7 @@
 
 
 int  indicator_init(int, char **);
-void indicator_play(struct ausrv *, int, uint32_t);
+void indicator_play(struct ausrv *, int, uint32_t, int);
 void indicator_stop(struct ausrv *, int);
 void indicator_set_standard(int);
 
