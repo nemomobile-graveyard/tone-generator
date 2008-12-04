@@ -1,3 +1,10 @@
+tone-generator (0.0.4) unstable; urgency=low
+
+  * use of different signalling standards based on the SIM/imsi code
+  * request 72,73 and 74 also accepts duration
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu,  4 Dec 2008 16:10:11 +0200
+
 tone-generator (0.0.3) unstable; urgency=low
 
   * request 66 accepts duration

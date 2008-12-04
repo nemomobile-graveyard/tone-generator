@@ -83,13 +83,18 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
     case TONE_CONGEST:
         switch (standard) {
         case STD_CEPT:
-            tone_create(stream, type, 425, vol, 400000, 200000, 0,0);
+            tone_create(stream, type, 425, vol, 400000, 200000, 0,dur);
             break;
         case STD_ANSI:
-            tone_create(stream, type, 480, (vol*7)/10, 500000, 250000, 0,0);
-            tone_create(stream, type, 620, (vol*7)/10, 500000, 250000, 0,0);
+            tone_create(stream, type, 480, (vol*7)/10, 500000, 250000, 0,dur);
+            tone_create(stream, type, 620, (vol*7)/10, 500000, 250000, 0,dur);
             break;
         case STD_JAPAN:
+            /*
+             * this is non-standard, but
+             * we play busy tone instead of being silent
+             */
+            tone_create(stream, type, 400, vol, 1000000, 500000, 0,dur);
             break;
         }
         break;
@@ -121,11 +126,16 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         switch (standard) {
         case STD_CEPT:
         case STD_ANSI:
-            tone_create(stream, type,  900, vol, 2000000, 333333, 0,0);
-            tone_create(stream, type, 1400, vol, 2000000, 332857, 333333,0);
-            tone_create(stream, type, 1800, vol, 2000000, 300000, 666190,0);
+            tone_create(stream, type,  900, vol, 2000000, 333333, 0,dur);
+            tone_create(stream, type, 1400, vol, 2000000, 332857, 333333,dur);
+            tone_create(stream, type, 1800, vol, 2000000, 300000, 666190,dur);
             break;
         case STD_JAPAN:
+            /*
+             * this is non-standard, but
+             * we play busy tone instead of being silent
+             */
+            tone_create(stream, type, 400, vol, 1000000, 500000, 0,dur);
             break;
         }
         break;
