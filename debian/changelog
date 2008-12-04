@@ -1,3 +1,9 @@
+tone-generator (0.0.3) unstable; urgency=low
+
+  * request 66 accepts duration
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu,  4 Dec 2008 10:15:03 +0200
+
 tone-generator (0.0.2) unstable; urgency=low
 
   * request 66 is producing busy tone.
