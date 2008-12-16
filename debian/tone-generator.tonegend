@@ -6,7 +6,8 @@ stop on stopped dbus
 
 console output
 
-script 
+script
+	set +e
         echo "Starting tonegend"
 #       /usr/sbin/waitdbus system
 	/etc/osso-af-init/af-defines.sh

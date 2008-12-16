@@ -1,3 +1,9 @@
+tone-generator (0.0.5) unstable; urgency=low
+
+  * the apt-start script do not fail if the SMS D-Bus service were down.
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Tue, 16 Dec 2008 14:06:12 +0200
+
 tone-generator (0.0.4) unstable; urgency=low
 
   * use of different signalling standards based on the SIM/imsi code
