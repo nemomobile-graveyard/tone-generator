@@ -32,6 +32,11 @@ int dbusif_init(int argc, char **argv)
     return 0;
 }
 
+void dbsuif_exit(void)
+{
+    
+}
+
 struct dbusif *dbusif_create(struct tonegend *tonegend)
 {
     static struct DBusObjectPathVTable method = {
@@ -90,6 +95,17 @@ struct dbusif *dbusif_create(struct tonegend *tonegend)
         free(dbusif);
 
     return NULL;
+}
+
+void dbusif_destroy(struct dbusif *dbusif)
+{
+    if (dbusif) {
+
+        if (dbusif->hash != NULL)
+            g_hash_table_destroy(dbusif->hash);
+
+        free(dbusif);
+    }
 }
 
 

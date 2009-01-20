@@ -42,6 +42,11 @@ int ausrv_init(int argc, char **argv)
     return 0;
 }
 
+void ausrv_exit(void)
+{
+    free(pa_client_name);
+    pa_client_name = NULL;
+}
 
 struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
 {
@@ -100,6 +105,19 @@ struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
 
 }
 
+void ausrv_destroy(struct ausrv *ausrv)
+{
+    if (ausrv != NULL) {
+        if (ausrv->context != NULL)
+            pa_context_unref(ausrv->context);
+        
+        if (ausrv->mainloop != NULL)
+            pa_glib_mainloop_free(ausrv->mainloop);
+        
+        free(ausrv->server);
+        free(ausrv);
+    }
+}
 
 
 static void set_connection_status(struct ausrv *ausrv, int sts)

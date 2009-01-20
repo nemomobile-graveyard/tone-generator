@@ -1,3 +1,10 @@
+tone-generator (0.0.6) unstable; urgency=low
+
+  * some dynamically allocated memory is explicitly released at exit
+  * test script
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Tue, 20 Jan 2009 13:00:02 +0200
+
 tone-generator (0.0.5) unstable; urgency=low
 
   * the apt-start script do not fail if the SMS D-Bus service were down.

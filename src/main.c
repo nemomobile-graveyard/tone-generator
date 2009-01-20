@@ -131,10 +131,15 @@ int main(int argc, char **argv)
 
     g_main_loop_run(main_loop);
 
+    LOG_INFO("Exiting now ...");
+
+    ausrv_destroy(tonegend.ausrv_ctx);
+    dbusif_destroy(tonegend.dbus_ctx);
+
     if (main_loop != NULL) 
         g_main_loop_unref(main_loop);
 
-    LOG_INFO("Exiting now ...");
+    ausrv_exit();
 
     return 0;
 }

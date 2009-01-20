@@ -25,7 +25,9 @@ struct ausrv {
 
 
 int ausrv_init(int, char **);
+
 struct ausrv *ausrv_create(struct tonegend *, char *);
+void ausrv_destroy(struct ausrv *);
 
 
 #endif /* __TONEGEND_AUSRV_H__ */

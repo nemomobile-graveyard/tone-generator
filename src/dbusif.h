@@ -20,7 +20,11 @@ struct dbusif {
 };
 
 int dbusif_init(int, char **);
+void dbusif_exit(void);
+
 struct dbusif *dbusif_create(struct tonegend *);
+void dbusif_destroy(struct dbusif *);
+
 int dbusif_register_method(struct tonegend *, char *, char *, char *, 
                            int (*)(DBusMessage *, struct tonegend *));
 int dbusif_unregister_method(struct tonegend *, char *, char *, char *);
