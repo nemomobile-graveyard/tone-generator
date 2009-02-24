@@ -19,12 +19,14 @@ struct ausrv {
     int                connected;
     pa_glib_mainloop  *mainloop;
     pa_context        *context;
+    pa_time_event     *timer;
     int                nextid;
     struct stream     *streams;
 };
 
 
 int ausrv_init(int, char **);
+void ausrv_exit(void);
 
 struct ausrv *ausrv_create(struct tonegend *, char *);
 void ausrv_destroy(struct ausrv *);

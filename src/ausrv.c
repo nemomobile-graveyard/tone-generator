@@ -17,6 +17,9 @@
 #define DISCONNECTED    0
 #define CONNECTED       1
 
+#define DEFAULT_SERVER  "default Pulse Audio"
+#define CONNECT_TIMEOUT 10                              /* in seconds */
+
 #define LOG_ERROR(f, args...) log_error(logctx, f, ##args)
 #define LOG_INFO(f, args...) log_error(logctx, f, ##args)
 #define LOG_WARNING(f, args...) log_error(logctx, f, ##args)
@@ -27,6 +30,8 @@ static void set_connection_status(struct ausrv *, int);
 static void context_callback(pa_context *, void *);
 static void event_callback(pa_context *, pa_subscription_event_type_t,
                            uint32_t, void *);
+static void connect_server(struct ausrv *ausrv);
+static void cancel_timer(struct ausrv *ausrv);
 
 static char *pa_client_name;
 
@@ -74,20 +79,12 @@ struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
         goto failed;
     }
     
-    if (!(context = pa_context_new(mainloop_api, pa_client_name))) {
-        LOG_ERROR("%s(): pa_context_new() failed", __FUNCTION__);
-        goto failed;
-    }
-        
     memset(ausrv, 0, sizeof(*ausrv));
     ausrv->tonegend = tonegend;
-    ausrv->server   = strdup(server ? server : "default Pulse Audio");
+    ausrv->server   = strdup(server ? server : DEFAULT_SERVER);
     ausrv->mainloop = mainloop;
-    ausrv->context  = context;
 
-    pa_context_set_state_callback(context, context_callback, ausrv);
-    pa_context_set_subscribe_callback(context, event_callback, ausrv);
-    pa_context_connect(context, server, PA_CONTEXT_NOAUTOSPAWN, NULL);
+    connect_server(ausrv);
 
     return ausrv;
 
@@ -165,25 +162,30 @@ static void context_callback(pa_context *context, void *userdata)
         TRACE("ausrv: setting name");
         set_connection_status(ausrv, DISCONNECTED);
         break;
-
+        
     case PA_CONTEXT_READY:
         TRACE("ausrv: connection established.");
         set_connection_status(ausrv, CONNECTED);
+        cancel_timer(ausrv);
         LOG_INFO("Pulse Audio OK");        
         break;
         
     case PA_CONTEXT_TERMINATED:
         TRACE("ausrv: connection to server terminated");
+        set_connection_status(ausrv, DISCONNECTED);
+        connect_server(ausrv);
         break;
         
     case PA_CONTEXT_FAILED:
     default:
         if ((err = pa_context_errno(context)) != 0) {
-            LOG_ERROR("uasrv: server connection failure: %s",
+            LOG_ERROR("ausrv: server connection failure: %s",
                       pa_strerror(err));
         }
 
         set_connection_status(ausrv, DISCONNECTED);
+        if (ausrv->timer == NULL)
+            connect_server(ausrv);
     }
 }
 
@@ -223,6 +225,90 @@ static void event_callback(pa_context                   *context,
         }
     }
 }
+
+
+static void retry_connect(pa_mainloop_api *api, pa_time_event *event,
+                          const struct timeval *tv, void *data)
+{
+    struct ausrv *ausrv = (struct ausrv *)data;
+
+    (void)api;
+    (void)tv;
+    
+    if (event != ausrv->timer) {
+        LOG_ERROR("%s(): Called with unknown timer (%p != %p)", __FUNCTION__,
+                  event, ausrv->timer);
+    }
+    
+    connect_server(ausrv);
+}
+
+
+static void restart_timer(struct ausrv *ausrv, int secs)
+{
+    pa_mainloop_api *api = pa_glib_mainloop_get_api(ausrv->mainloop);
+    struct timeval   tv;
+
+    gettimeofday(&tv, NULL);
+    tv.tv_sec += secs;
+    
+    if (ausrv->timer != NULL) {
+
+        api->time_restart(ausrv->timer, &tv);
+    }
+    else
+        ausrv->timer = api->time_new(api, &tv, retry_connect, (void *)ausrv);
+}
+
+
+static void cancel_timer(struct ausrv *ausrv)
+{
+    pa_mainloop_api *api;
+    
+    if (ausrv->timer != NULL) {
+        api = pa_glib_mainloop_get_api(ausrv->mainloop);
+        api->time_free(ausrv->timer);
+        ausrv->timer = NULL;
+    }
+}
+
+
+static void connect_server(struct ausrv *ausrv)
+{
+    pa_mainloop_api *api    = pa_glib_mainloop_get_api(ausrv->mainloop);
+    char            *server = ausrv->server;
+
+    if (server != NULL && !strcmp(ausrv->server, DEFAULT_SERVER))
+        server = NULL;
+    
+    
+    /*
+     * Note: It is not possible to reconnect a context if it ever gets
+     *     disconnected. If we have a context here, get rid of it and
+     *     allocate a new one.
+     */
+    if (ausrv->context != NULL) {
+        pa_context_set_state_callback(ausrv->context, NULL, NULL);
+        pa_context_set_subscribe_callback(ausrv->context, NULL, NULL);
+        pa_context_unref(ausrv->context);
+        ausrv->context = NULL;
+    }
+    
+    if ((ausrv->context = pa_context_new(api, pa_client_name)) == NULL) {
+        LOG_ERROR("%s(): pa_context_new() failed, exiting", __FUNCTION__);
+        exit(1);
+    }
+    
+    pa_context_set_state_callback(ausrv->context, context_callback, ausrv);
+    pa_context_set_subscribe_callback(ausrv->context, event_callback, ausrv);
+
+
+    LOG_INFO("Trying to connect to %s...", server ? server : DEFAULT_SERVER);
+    restart_timer(ausrv, CONNECT_TIMEOUT);
+    pa_context_connect(ausrv->context, server, PA_CONTEXT_NOAUTOSPAWN, NULL);
+}
+
+
 
 
 
