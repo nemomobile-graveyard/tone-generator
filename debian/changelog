@@ -1,3 +1,10 @@
+tone-generator (0.0.7) unstable; urgency=low
+
+  * Try to reconnect if we ever lose connection to pulseaudio.
+  * Explicitly free memory on exit path for better valgrind SNR.
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Tue, 24 Feb 2009 16:09:46 +0200
+
 tone-generator (0.0.6) unstable; urgency=low
 
   * some dynamically allocated memory is explicitly released at exit
