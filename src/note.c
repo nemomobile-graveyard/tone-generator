@@ -65,7 +65,7 @@ void note_play(struct ausrv *ausrv, int note, int scale, int beat,
         style  < 0 || style  >= STYLE_DIM  ||
         fract  < 1 || fract  >  32         ||
         vol    < 1 || vol    >  100        ||
-        idx    < 0 || idx > (int)(sizeof(types)/sizeof(types[0]))) {
+        idx    < 0 || idx >= (int)(sizeof(types)/sizeof(types[0]))) {
         return;
     }
 

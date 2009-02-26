@@ -55,7 +55,7 @@ int dtmf_init(int argc, char **argv)
     return 0;
 }
 
-void dtmf_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
+void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
 {
     struct stream *stream = stream_find(ausrv, dtmf_stream);
     struct dtmf   *dtmf   = dtmf_defs + type;
@@ -64,7 +64,7 @@ void dtmf_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
     int            type_l = TONE_DTMF_L;
     int            type_h = TONE_DTMF_H;
         
-    if (type < 0 || type >= DTMF_MAX || (dur != 0 && dur < 10000))
+    if (type >= DTMF_MAX || (dur != 0 && dur < 10000))
         return;
 
     if (!dur) {

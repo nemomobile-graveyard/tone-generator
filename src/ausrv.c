@@ -56,10 +56,8 @@ void ausrv_exit(void)
 struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
 {
     pa_glib_mainloop   *mainloop = NULL;
-    pa_context         *context  = NULL;
     struct ausrv       *ausrv;
     pa_mainloop_api    *mainloop_api;
-    int                 err;
 
     if ((ausrv = malloc(sizeof(*ausrv))) == NULL) {
         LOG_ERROR("%s(): Can't allocate memory", __FUNCTION__);
@@ -73,9 +71,8 @@ struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
 
     mainloop_api = pa_glib_mainloop_get_api(mainloop);
 
-    if ((err = pa_signal_init(mainloop_api)) != 0) {
-        LOG_ERROR("%s(): pa_signal_init() failed: %s", __FUNCTION__,
-                  strerror(err));
+    if (pa_signal_init(mainloop_api) < 0) {
+        LOG_ERROR("%s(): pa_signal_init() failed", __FUNCTION__);
         goto failed;
     }
     
@@ -89,9 +86,6 @@ struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
     return ausrv;
 
  failed:
-    if (context != NULL)
-        pa_context_unref(context);
-
     if (mainloop != NULL)
         pa_glib_mainloop_free(mainloop);
 

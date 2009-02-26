@@ -173,6 +173,8 @@ static void state_callback(pa_stream *pastr, void *userdata)
 
         if (err)
             LOG_ERROR("Stream '%s' error: %s", stream->name, pa_strerror(err));
+
+        break;
     }
 }
 

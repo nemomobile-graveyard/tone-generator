@@ -26,7 +26,7 @@
 #define DTMF_MAX        16
 
 int  dtmf_init(int, char **);
-void dtmf_play(struct ausrv *, int, uint32_t, int);
+void dtmf_play(struct ausrv *, uint, uint32_t, int);
 void dtmf_stop(struct ausrv *, int);
 
 #endif /* __TONEGEND_DTMF_H__ */

@@ -135,6 +135,7 @@ int main(int argc, char **argv)
 
     ausrv_destroy(tonegend.ausrv_ctx);
     dbusif_destroy(tonegend.dbus_ctx);
+    interact_destroy(tonegend.intact_ctx);
 
     if (main_loop != NULL) 
         g_main_loop_unref(main_loop);

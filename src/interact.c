@@ -88,6 +88,17 @@ struct interact *interact_create(struct tonegend *tonegend, int fd)
     return NULL;
 }
 
+void interact_destroy(struct interact *interact)
+{
+    if (interact) {
+        g_io_channel_shutdown(interact->chan, TRUE, NULL);
+        g_io_channel_unref(interact->chan);
+
+        g_source_remove(interact->evsrc);
+
+        free(interact);
+    }
+}
 
 static gboolean handle_input(GIOChannel *ch, GIOCondition cond, gpointer data)
 {

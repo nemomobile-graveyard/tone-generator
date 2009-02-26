@@ -18,6 +18,7 @@ struct interact {
 
 
 int interact_init(int, char **);
+void interact_destroy(struct interact *);
 struct interact *interact_create(struct tonegend *, int);
 
 
