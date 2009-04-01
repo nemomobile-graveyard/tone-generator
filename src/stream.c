@@ -125,6 +125,28 @@ void stream_destroy(struct stream *stream)
     LOG_ERROR("%s(): Can't find stream '%s'", __FUNCTION__, stream->name);
 }
 
+void stream_kill_all(struct ausrv *ausrv)
+{
+    struct stream *stream;
+
+    while ((stream = ausrv->streams) != NULL) {
+        ausrv->streams = stream->next;
+
+        stream->next   = NULL;
+        stream->ausrv  = NULL;
+        stream->killed = TRUE;
+
+        if (stream->destroy != NULL)
+            stream->destroy(stream->data);
+
+        pa_stream_set_state_callback(stream->pastr, NULL,NULL);
+        pa_stream_set_write_callback(stream->pastr, NULL,NULL);
+
+        free(stream->name);
+        free(stream);
+    }
+}
+
 struct stream *stream_find(struct ausrv *ausrv, char *name)
 {
     struct stream *stream;

@@ -63,6 +63,13 @@ struct dbusif *dbusif_create(struct tonegend *tonegend)
         goto failed;
     }
 
+    /*
+     * The following will make us zombie if the system bus goes down.
+     * However, for 'clean' shutdown operation it is useful, ie. the
+     * shutdown sequence should not assure that we go before D-Bus go
+     */
+    dbus_connection_set_exit_on_disconnect(conn, FALSE);
+
     dbus_connection_setup_with_g_main(conn, NULL);
 
     if (!dbus_connection_register_object_path(conn, path, &method, dbusif)) {

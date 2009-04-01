@@ -33,6 +33,7 @@ struct stream *stream_create(struct ausrv *, char *, char *, uint32_t,
                              uint32_t (*)(void*, uint32_t, int16_t*, int),
                              void (*)(void*), void *);
 void stream_destroy(struct stream *);
+void stream_kill_all(struct ausrv *);
 struct stream *stream_find(struct ausrv *, char *);
 
 

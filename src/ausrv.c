@@ -18,7 +18,7 @@
 #define CONNECTED       1
 
 #define DEFAULT_SERVER  "default Pulse Audio"
-#define CONNECT_TIMEOUT 10                              /* in seconds */
+#define CONNECT_DELAY   10                              /* in seconds */
 
 #define LOG_ERROR(f, args...) log_error(logctx, f, ##args)
 #define LOG_INFO(f, args...) log_error(logctx, f, ##args)
@@ -30,8 +30,9 @@ static void set_connection_status(struct ausrv *, int);
 static void context_callback(pa_context *, void *);
 static void event_callback(pa_context *, pa_subscription_event_type_t,
                            uint32_t, void *);
-static void connect_server(struct ausrv *ausrv);
-static void cancel_timer(struct ausrv *ausrv);
+static void connect_server(struct ausrv *);
+static void restart_timer(struct ausrv *, int);
+static void cancel_timer(struct ausrv *);
 
 static char *pa_client_name;
 
@@ -166,9 +167,7 @@ static void context_callback(pa_context *context, void *userdata)
         
     case PA_CONTEXT_TERMINATED:
         TRACE("ausrv: connection to server terminated");
-        set_connection_status(ausrv, DISCONNECTED);
-        connect_server(ausrv);
-        break;
+        goto disconnect;
         
     case PA_CONTEXT_FAILED:
     default:
@@ -177,9 +176,10 @@ static void context_callback(pa_context *context, void *userdata)
                       pa_strerror(err));
         }
 
+    disconnect:
         set_connection_status(ausrv, DISCONNECTED);
-        if (ausrv->timer == NULL)
-            connect_server(ausrv);
+        stream_kill_all(ausrv);
+        restart_timer(ausrv, CONNECT_DELAY);
     }
 }
 
@@ -232,8 +232,11 @@ static void retry_connect(pa_mainloop_api *api, pa_time_event *event,
     if (event != ausrv->timer) {
         LOG_ERROR("%s(): Called with unknown timer (%p != %p)", __FUNCTION__,
                   event, ausrv->timer);
+        return;
     }
-    
+
+    ausrv->timer = NULL;
+
     connect_server(ausrv);
 }
 
@@ -246,10 +249,8 @@ static void restart_timer(struct ausrv *ausrv, int secs)
     gettimeofday(&tv, NULL);
     tv.tv_sec += secs;
     
-    if (ausrv->timer != NULL) {
-
+    if (ausrv->timer != NULL)
         api->time_restart(ausrv->timer, &tv);
-    }
     else
         ausrv->timer = api->time_new(api, &tv, retry_connect, (void *)ausrv);
 }
@@ -271,6 +272,9 @@ static void connect_server(struct ausrv *ausrv)
 {
     pa_mainloop_api *api    = pa_glib_mainloop_get_api(ausrv->mainloop);
     char            *server = ausrv->server;
+
+    cancel_timer(ausrv);
+
 
     if (server != NULL && !strcmp(ausrv->server, DEFAULT_SERVER))
         server = NULL;
@@ -298,7 +302,6 @@ static void connect_server(struct ausrv *ausrv)
 
 
     LOG_INFO("Trying to connect to %s...", server ? server : DEFAULT_SERVER);
-    restart_timer(ausrv, CONNECT_TIMEOUT);
     pa_context_connect(ausrv->context, server, PA_CONTEXT_NOAUTOSPAWN, NULL);
 }
 
