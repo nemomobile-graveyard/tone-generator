@@ -1,3 +1,10 @@
+tone-generator (0.0.10) unstable; urgency=low
+
+  * the (mostly debugging) outputs of tonegend are directed to /dev/null
+  * Fixes: NB#110652
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Wed, 15 Apr 2009 17:38:00 +0200
+
 tone-generator (0.0.9) unstable; urgency=low
 
   * Proper reconnection to PulseAudio server even if it is irresponsive,
