@@ -1,3 +1,10 @@
+tone-generator (0.0.10) unstable; urgency=low
+
+  * fixes for the crashes when pulseaudio goes away
+  * Fixes: NB#109029
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Fri, 08 Apr 2009 11:12:00 +0300
+
 tone-generator (0.0.9) unstable; urgency=low
 
   * Proper reconnection to PulseAudio server even if it is irresponsive,

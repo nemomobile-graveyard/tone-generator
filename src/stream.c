@@ -94,9 +94,9 @@ struct stream *stream_create(struct ausrv *ausrv,
 
 void stream_destroy(struct stream *stream)
 {
-    struct ausrv  *ausrv = stream->ausrv;
-    struct stream *prev;
-    pa_operation  *oper;
+    struct ausrv      *ausrv = stream->ausrv;
+    struct stream     *prev;
+    pa_operation      *oper;
     
     if (stream->killed)
         return;
@@ -162,41 +162,49 @@ struct stream *stream_find(struct ausrv *ausrv, char *name)
 
 static void state_callback(pa_stream *pastr, void *userdata)
 {
-    struct stream *stream = (struct stream *)userdata;
-    struct ausrv  *ausrv;
-    int            err;
+    struct stream      *stream = (struct stream *)userdata;
+    pa_context         *pactx  = pa_stream_get_context(pastr);
+    pa_context_state_t  ctxst  = pa_context_get_state(pactx);
+    struct ausrv       *ausrv;
+    int                 err;
 
-    if (!stream || stream->pastr != pastr) {
-        LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
-        return;
-    }
+    
+    if (ctxst != PA_CONTEXT_TERMINATED && ctxst != PA_CONTEXT_FAILED) {
 
-    switch (pa_stream_get_state(pastr)) {
-    case PA_STREAM_CREATING:
-        TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
-        break;
-
-    case PA_STREAM_TERMINATED:
-        TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
-
-        free(stream->name);
-        free(stream);
-
-        break;
-
-    case PA_STREAM_READY:
-        TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
-        break;
-
-    case PA_STREAM_FAILED:
-    default:
-        ausrv = stream->ausrv;
-        err = pa_context_errno(ausrv->context);
-
-        if (err)
-            LOG_ERROR("Stream '%s' error: %s", stream->name, pa_strerror(err));
-
-        break;
+        if (!stream || stream->pastr != pastr) {
+            LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
+            return;
+        }
+        
+        switch (pa_stream_get_state(pastr)) {
+            
+        case PA_STREAM_CREATING:
+            TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
+            break;
+            
+        case PA_STREAM_TERMINATED:
+            TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
+            
+            free(stream->name);
+            free(stream);
+            
+            break;
+            
+        case PA_STREAM_READY:
+            TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
+            break;
+            
+        case PA_STREAM_FAILED:
+        default:
+            ausrv = stream->ausrv;
+            err = pa_context_errno(ausrv->context);
+            
+            if (err) {
+                LOG_ERROR("Stream '%s' error: %s",
+                          stream->name, pa_strerror(err));
+            }
+            break;
+        }
     }
 }
 
