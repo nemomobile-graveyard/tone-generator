@@ -1,7 +1,7 @@
 tone-generator (0.0.11) unstable; urgency=low
 	
   * fixes for the crashes when pulseaudio goes away
-  * Fixes: NB#109029
+  * Fixes: NB#109029 and NB#114380
 	
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Fri, 08 May 2009 11:12:00 +0300
 	
