@@ -12,6 +12,13 @@
 #include "stream.h"
 #include "tone.h"
 
+#ifndef TRUE
+#define TRUE  1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+
 #define LOG_ERROR(f, args...) log_error(logctx, f, ##args)
 #define LOG_INFO(f, args...) log_error(logctx, f, ##args)
 #define LOG_WARNING(f, args...) log_error(logctx, f, ##args)
@@ -118,6 +125,9 @@ struct tone *tone_create(struct stream *stream,
         link->chain = tone;
     else
         stream->data = (void *)tone;
+
+    if (duration)
+        stream->flush = FALSE;
 
     return tone;
 }

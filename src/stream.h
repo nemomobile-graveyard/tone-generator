@@ -21,6 +21,7 @@ struct stream {
     uint32_t           rate;    /* sample rate */
     pa_stream         *pastr;   /* pulse audio stream */
     uint32_t           time;    /* time in usecs */
+    int                flush;   /* flush on destroy */
     int                killed;
     uint32_t         (*write)(void *, uint32_t, int16_t *, int);
     void             (*destroy)(void *);

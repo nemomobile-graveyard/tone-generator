@@ -1,3 +1,11 @@
+tone-generator (0.0.12) unstable; urgency=low
+	
+  * flush on stream destroy is introduced for quicker stream shutdown
+    (used for DTMF)
+  * Fixes: NB#115804
+	
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Tue, 12 May 2009 11:12:00 +0300
+	
 tone-generator (0.0.11) unstable; urgency=low
 	
   * fixes for the crashes when pulseaudio goes away

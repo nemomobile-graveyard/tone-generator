@@ -20,6 +20,7 @@
 
 static void state_callback(pa_stream *, void *);
 static void write_callback(pa_stream *, size_t, void *);
+static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
 
 
@@ -68,6 +69,7 @@ struct stream *stream_create(struct ausrv *ausrv,
     stream->name    = strdup(name);
     stream->rate    = sample_rate;
     stream->pastr   = pa_stream_new(ausrv->context, name, &spec, NULL);
+    stream->flush   = TRUE;
     stream->write   = write;
     stream->destroy = destroy;
     stream->data    = data;
@@ -96,6 +98,7 @@ void stream_destroy(struct stream *stream)
 {
     struct ausrv      *ausrv = stream->ausrv;
     struct stream     *prev;
+    pa_stream         *pastr;
     pa_operation      *oper;
     
     if (stream->killed)
@@ -109,12 +112,18 @@ void stream_destroy(struct stream *stream)
             stream->ausrv  = NULL;
             stream->killed = TRUE;
 
+            pastr = stream->pastr;
+
             if (stream->destroy != NULL)
                 stream->destroy(stream->data);
     
-            pa_stream_set_write_callback(stream->pastr, NULL,NULL);
-            oper = pa_stream_drain(stream->pastr, drain_callback,
-                                   (void *)stream);
+            pa_stream_set_write_callback(pastr, NULL,NULL);
+
+            if (stream->flush)
+                oper = pa_stream_flush(pastr, flush_callback, (void *)stream);
+            else
+                oper = pa_stream_drain(pastr, drain_callback, (void *)stream);
+
             if (oper != NULL)
                 pa_operation_unref(oper);
 
@@ -249,6 +258,26 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 
     pa_stream_write(stream->pastr, (void*)samples,length*2, free,
                     0,PA_SEEK_RELATIVE);
+}
+
+
+static void flush_callback(pa_stream *pastr, int success, void *userdata)
+{
+    struct stream *stream = (struct stream *)userdata;
+
+    if (stream->pastr != pastr) {
+        LOG_ERROR("%s(): Confused with data structures", __FUNCTION__);
+        return;
+    }
+
+    if (!success)
+        LOG_ERROR("%s(): Can't flush stream '%s'", __FUNCTION__, stream->name);
+    else {
+        pa_stream_unref(pastr);
+        pa_stream_disconnect(pastr);
+    }
+
+    TRACE("%s(): stream '%s' flushed", __FUNCTION__, stream->name);
 }
 
 
