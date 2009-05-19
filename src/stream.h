@@ -28,8 +28,8 @@ struct stream {
     void              *data;    /* extension */
 };
 
-
 int stream_init(int, char **);
+void stream_set_default_samplerate(uint32_t rate);
 struct stream *stream_create(struct ausrv *, char *, char *, uint32_t,
                              uint32_t (*)(void*, uint32_t, int16_t*, int),
                              void (*)(void*), void *);

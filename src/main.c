@@ -43,6 +43,7 @@ struct cmdopt {
     char   *path;
     int     standard;
     int     interactive;
+    int     sample_rate;
 };
 
 
@@ -66,7 +67,8 @@ int main(int argc, char **argv)
     cmdopt.path = NULL;
     cmdopt.standard = STD_CEPT;
     cmdopt.interactive = 0;
-
+    cmdopt.sample_rate = 48000;
+    
     parse_options(argc, argv, &cmdopt);
 
     memset(&tonegend, 0, sizeof(tonegend));
@@ -95,6 +97,8 @@ int main(int argc, char **argv)
         return EINVAL;
     }
 
+
+    stream_set_default_samplerate(cmdopt.sample_rate);
 
     if (cmdopt.daemon)
         daemonize(cmdopt.uid, cmdopt.path);
@@ -151,7 +155,7 @@ static void usage(int argc, char **argv, int exit_code)
     (void)argc;
 
     printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}] "
-           "[-i]\n", basename(argv[0]));
+           "[-i] [-8]\n", basename(argv[0]));
     exit(exit_code);
 }
 
@@ -161,7 +165,7 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
     int option;
     struct passwd *pwd;
 
-    while ((option = getopt(argc, argv, "du:s:hi")) != -1) {
+    while ((option = getopt(argc, argv, "du:s:hi8")) != -1) {
         switch (option) {
 
         case 'h':
@@ -174,6 +178,10 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 
         case 'i':
             cmdopt->interactive = 1;
+            break;
+
+        case '8':
+            cmdopt->sample_rate = 8000;
             break;
 
         case 'u':

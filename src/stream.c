@@ -23,6 +23,7 @@ static void write_callback(pa_stream *, size_t, void *);
 static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
 
+static uint32_t default_rate = 48000;
 
 int stream_init(int argc, char **argv)
 {
@@ -30,6 +31,12 @@ int stream_init(int argc, char **argv)
     (void)argv;
 
     return 0;
+}
+
+
+void stream_set_default_samplerate(uint32_t rate)
+{
+    default_rate = rate;
 }
 
 
@@ -51,6 +58,9 @@ struct stream *stream_create(struct ausrv *ausrv,
 
     if (name == NULL)
         name = "generated tone";
+
+    if (sample_rate == 0)
+        sample_rate = default_rate;
 
     memset(&spec, 0, sizeof(spec));
     spec.format   = PA_SAMPLE_S16LE;
