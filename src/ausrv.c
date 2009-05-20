@@ -130,6 +130,7 @@ static void context_callback(pa_context *context, void *userdata)
 {
     struct ausrv *ausrv = (struct ausrv *)userdata;
     int           err   = 0;
+    const char   *strerr;
 
     if (context == NULL) {
         LOG_ERROR("%s() called with zero context", __FUNCTION__);
@@ -172,8 +173,10 @@ static void context_callback(pa_context *context, void *userdata)
     case PA_CONTEXT_FAILED:
     default:
         if ((err = pa_context_errno(context)) != 0) {
-            LOG_ERROR("ausrv: server connection failure: %s",
-                      pa_strerror(err));
+            if ((strerr = pa_strerror(err)) == NULL)
+                strerr = "<unknown>";
+
+            LOG_ERROR("ausrv: server connection failure: %s", strerr);
         }
 
     disconnect:

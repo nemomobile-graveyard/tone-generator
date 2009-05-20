@@ -165,6 +165,7 @@ static void state_callback(pa_stream *pastr, void *userdata)
     struct stream *stream = (struct stream *)userdata;
     struct ausrv  *ausrv;
     int            err;
+    const char    *strerr;
 
     if (!stream || stream->pastr != pastr) {
         LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
@@ -193,8 +194,12 @@ static void state_callback(pa_stream *pastr, void *userdata)
         ausrv = stream->ausrv;
         err = pa_context_errno(ausrv->context);
 
-        if (err)
-            LOG_ERROR("Stream '%s' error: %s", stream->name, pa_strerror(err));
+        if (err) {
+            if ((strerr = pa_strerror(err)) == NULL)
+                strerr = "<unknown>";
+
+            LOG_ERROR("Stream '%s' error: %s", stream->name, strerr);
+        }
 
         break;
     }
