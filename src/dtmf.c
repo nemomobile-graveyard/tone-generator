@@ -84,7 +84,7 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
         }
     }
     else {
-        stream = stream_create(ausrv, dtmf_stream, NULL, 48000,
+        stream = stream_create(ausrv, dtmf_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
                                NULL);

@@ -20,8 +20,10 @@
 
 static void state_callback(pa_stream *, void *);
 static void write_callback(pa_stream *, size_t, void *);
+static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
 
+static uint32_t default_rate = 48000;
 
 int stream_init(int argc, char **argv)
 {
@@ -29,6 +31,12 @@ int stream_init(int argc, char **argv)
     (void)argv;
 
     return 0;
+}
+
+
+void stream_set_default_samplerate(uint32_t rate)
+{
+    default_rate = rate;
 }
 
 
@@ -51,6 +59,9 @@ struct stream *stream_create(struct ausrv *ausrv,
     if (name == NULL)
         name = "generated tone";
 
+    if (sample_rate == 0)
+        sample_rate = default_rate;
+
     memset(&spec, 0, sizeof(spec));
     spec.format   = PA_SAMPLE_S16LE;
     spec.rate     = sample_rate;
@@ -68,6 +79,7 @@ struct stream *stream_create(struct ausrv *ausrv,
     stream->name    = strdup(name);
     stream->rate    = sample_rate;
     stream->pastr   = pa_stream_new(ausrv->context, name, &spec, NULL);
+    stream->flush   = TRUE;
     stream->write   = write;
     stream->destroy = destroy;
     stream->data    = data;
@@ -94,9 +106,10 @@ struct stream *stream_create(struct ausrv *ausrv,
 
 void stream_destroy(struct stream *stream)
 {
-    struct ausrv  *ausrv = stream->ausrv;
-    struct stream *prev;
-    pa_operation  *oper;
+    struct ausrv      *ausrv = stream->ausrv;
+    struct stream     *prev;
+    pa_stream         *pastr;
+    pa_operation      *oper;
     
     if (stream->killed)
         return;
@@ -109,12 +122,18 @@ void stream_destroy(struct stream *stream)
             stream->ausrv  = NULL;
             stream->killed = TRUE;
 
+            pastr = stream->pastr;
+
             if (stream->destroy != NULL)
                 stream->destroy(stream->data);
     
-            pa_stream_set_write_callback(stream->pastr, NULL,NULL);
-            oper = pa_stream_drain(stream->pastr, drain_callback,
-                                   (void *)stream);
+            pa_stream_set_write_callback(pastr, NULL,NULL);
+
+            if (stream->flush)
+                oper = pa_stream_flush(pastr, flush_callback, (void *)stream);
+            else
+                oper = pa_stream_drain(pastr, drain_callback, (void *)stream);
+
             if (oper != NULL)
                 pa_operation_unref(oper);
 
@@ -162,46 +181,51 @@ struct stream *stream_find(struct ausrv *ausrv, char *name)
 
 static void state_callback(pa_stream *pastr, void *userdata)
 {
-    struct stream *stream = (struct stream *)userdata;
-    struct ausrv  *ausrv;
-    int            err;
-    const char    *strerr;
+    struct stream      *stream = (struct stream *)userdata;
+    pa_context         *pactx  = pa_stream_get_context(pastr);
+    pa_context_state_t  ctxst  = pa_context_get_state(pactx);
+    struct ausrv       *ausrv;
+    int                 err;
+    const char         *strerr;
+    
+    if (ctxst != PA_CONTEXT_TERMINATED && ctxst != PA_CONTEXT_FAILED) {
 
-    if (!stream || stream->pastr != pastr) {
-        LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
-        return;
-    }
-
-    switch (pa_stream_get_state(pastr)) {
-    case PA_STREAM_CREATING:
-        TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
-        break;
-
-    case PA_STREAM_TERMINATED:
-        TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
-
-        free(stream->name);
-        free(stream);
-
-        break;
-
-    case PA_STREAM_READY:
-        TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
-        break;
-
-    case PA_STREAM_FAILED:
-    default:
-        ausrv = stream->ausrv;
-        err = pa_context_errno(ausrv->context);
-
-        if (err) {
-            if ((strerr = pa_strerror(err)) == NULL)
-                strerr = "<unknown>";
-
-            LOG_ERROR("Stream '%s' error: %s", stream->name, strerr);
+        if (!stream || stream->pastr != pastr) {
+            LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
+            return;
         }
-
-        break;
+        
+        switch (pa_stream_get_state(pastr)) {
+            
+        case PA_STREAM_CREATING:
+            TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
+            break;
+            
+        case PA_STREAM_TERMINATED:
+            TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
+            
+            free(stream->name);
+            free(stream);
+            
+            break;
+            
+        case PA_STREAM_READY:
+            TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
+            break;
+            
+        case PA_STREAM_FAILED:
+        default:
+            ausrv = stream->ausrv;
+            err = pa_context_errno(ausrv->context);
+            
+            if (err) {
+                if ((strerr = pa_strerror(err)) != NULL)
+                    LOG_ERROR("Stream '%s' error: %s", stream->name, strerr);
+                else
+                    LOG_ERROR("Stream '%s' error", stream->name);
+            }
+            break;
+        }
     }
 }
 
@@ -246,6 +270,26 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 
     pa_stream_write(stream->pastr, (void*)samples,length*2, free,
                     0,PA_SEEK_RELATIVE);
+}
+
+
+static void flush_callback(pa_stream *pastr, int success, void *userdata)
+{
+    struct stream *stream = (struct stream *)userdata;
+
+    if (stream->pastr != pastr) {
+        LOG_ERROR("%s(): Confused with data structures", __FUNCTION__);
+        return;
+    }
+
+    if (!success)
+        LOG_ERROR("%s(): Can't flush stream '%s'", __FUNCTION__, stream->name);
+    else {
+        pa_stream_unref(pastr);
+        pa_stream_disconnect(pastr);
+    }
+
+    TRACE("%s(): stream '%s' flushed", __FUNCTION__, stream->name);
 }
 
 

@@ -37,7 +37,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
     if (stream != NULL) 
         indicator_stop(ausrv, PRESERVE_STREAM);
     else {
-        stream = stream_create(ausrv, ind_stream, NULL, 48000,
+        stream = stream_create(ausrv, ind_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
                                NULL);
