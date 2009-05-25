@@ -1,18 +1,25 @@
+tone-generator (0.0.13) unstable; urgency=low
+
+  * Run tonegen in 8kHz mode.
+  * Flushing tones with infinite duartion (used for DTMF).
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Mon, 25 May 2009 13:44:01 +0300
+
 tone-generator (0.0.12) unstable; urgency=low
-	
+
   * flush on stream destroy is introduced for quicker stream shutdown
     (used for DTMF)
   * Fixes: NB#115804
-	
+
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Tue, 12 May 2009 11:12:00 +0300
-	
+
 tone-generator (0.0.11) unstable; urgency=low
-	
+
   * fixes for the crashes when pulseaudio goes away
   * Fixes: NB#109029 and NB#114380
-	
+
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Fri, 08 May 2009 11:12:00 +0300
-	
+
 tone-generator (0.0.10) unstable; urgency=low
 
   * the (mostly debugging) outputs of tonegend are directed to /dev/null
