@@ -1,3 +1,10 @@
+tone-generator (0.0.14) unstable; urgency=low
+
+  * Further fixes to avoid crashes when pulseaudio is coming back and
+    crashing again.
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu, 28 May 2009 08:59:00 +0300
+
 tone-generator (0.0.13) unstable; urgency=low
 
   * Run tonegen in 8kHz mode.

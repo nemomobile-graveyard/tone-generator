@@ -181,27 +181,25 @@ struct stream *stream_find(struct ausrv *ausrv, char *name)
 
 static void state_callback(pa_stream *pastr, void *userdata)
 {
+#define CHECK_STREAM(s,p) if (!s || s->pastr != p) { goto confused; }
+
     struct stream      *stream = (struct stream *)userdata;
     pa_context         *pactx  = pa_stream_get_context(pastr);
     pa_context_state_t  ctxst  = pa_context_get_state(pactx);
-    struct ausrv       *ausrv;
     int                 err;
     const char         *strerr;
     
     if (ctxst != PA_CONTEXT_TERMINATED && ctxst != PA_CONTEXT_FAILED) {
 
-        if (!stream || stream->pastr != pastr) {
-            LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
-            return;
-        }
-        
         switch (pa_stream_get_state(pastr)) {
             
         case PA_STREAM_CREATING:
+            CHECK_STREAM(stream, pastr);
             TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
             break;
             
         case PA_STREAM_TERMINATED:
+            CHECK_STREAM(stream, pastr);
             TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
             
             free(stream->name);
@@ -210,23 +208,29 @@ static void state_callback(pa_stream *pastr, void *userdata)
             break;
             
         case PA_STREAM_READY:
+            CHECK_STREAM(stream, pastr);
             TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
             break;
             
         case PA_STREAM_FAILED:
         default:
-            ausrv = stream->ausrv;
-            err = pa_context_errno(ausrv->context);
-            
-            if (err) {
+            if ((err = pa_context_errno(pactx))) {
                 if ((strerr = pa_strerror(err)) != NULL)
-                    LOG_ERROR("Stream '%s' error: %s", stream->name, strerr);
+                    LOG_ERROR("Stream error: %s", strerr);
                 else
-                    LOG_ERROR("Stream '%s' error", stream->name);
+                    LOG_ERROR("Stream error");
             }
             break;
         }
     }
+
+    return;
+
+ confused:
+    LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
+    return;
+
+#undef CHECK_STREAM
 }
 
 
