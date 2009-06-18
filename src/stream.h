@@ -7,9 +7,10 @@
 
 #include <pulse/pulseaudio.h>
 
-#define STREAM_INDICATOR  "indtone"
-#define STREAM_DTMF       "indtone"
-#define STREAM_NOTES      "ringtone"
+#define STREAM_INDICATOR    "indtone"
+#define STREAM_DTMF         "indtone"
+#define STREAM_NOTES        "ringtone"
+#define STREAM_NOTIFICATION "notiftone"
 
 struct ausrv;
 
