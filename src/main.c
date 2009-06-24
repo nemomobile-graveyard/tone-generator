@@ -44,6 +44,9 @@ struct cmdopt {
     int     standard;
     int     interactive;
     int     sample_rate;
+    int     statistics;
+    int     buflen;
+    int     minreq;
 };
 
 
@@ -68,6 +71,9 @@ int main(int argc, char **argv)
     cmdopt.standard = STD_CEPT;
     cmdopt.interactive = 0;
     cmdopt.sample_rate = 48000;
+    cmdopt.statistics = 0;
+    cmdopt.buflen = 500;
+    cmdopt.minreq = 50;
     
     parse_options(argc, argv, &cmdopt);
 
@@ -99,6 +105,8 @@ int main(int argc, char **argv)
 
 
     stream_set_default_samplerate(cmdopt.sample_rate);
+    stream_print_statistics(cmdopt.statistics);
+    stream_buffering_parameters(cmdopt.buflen, cmdopt.minreq);
 
     if (cmdopt.daemon)
         daemonize(cmdopt.uid, cmdopt.path);
@@ -155,7 +163,8 @@ static void usage(int argc, char **argv, int exit_code)
     (void)argc;
 
     printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}] "
-           "[-i] [-8]\n", basename(argv[0]));
+           "[-b buflen_in_ms] [-r min_req_time_in_ms] [-i] [-8] [-S]\n",
+           basename(argv[0]));
     exit(exit_code);
 }
 
@@ -164,8 +173,10 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 {
     int option;
     struct passwd *pwd;
+    long int t;
+    char *e;
 
-    while ((option = getopt(argc, argv, "du:s:hi8")) != -1) {
+    while ((option = getopt(argc, argv, "du:s:b:r:hi8S")) != -1) {
         switch (option) {
 
         case 'h':
@@ -214,6 +225,32 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
                 printf("invalid standard '%s'\n", optarg);
                 usage(argc, argv, EINVAL);
             }
+            break;
+
+        case 'b':
+            t = strtol(optarg, &e, 10);
+
+            if (*e == '\0' && t > 0 && t <= 10000)
+                cmdopt->buflen = t;
+            else {
+                printf("invalid buffer length '%s' msec\n", optarg);
+                usage(argc, argv, EINVAL);
+            }
+            break;
+
+        case 'r':
+            t = strtol(optarg, &e, 10);
+
+            if (*e == '\0' && t > 0 && t <= 1000)
+                cmdopt->minreq = t;
+            else {
+                printf("invalid min.request length '%s' msec\n", optarg);
+                usage(argc, argv, EINVAL);
+            }
+            break;
+
+        case 'S':
+            cmdopt->statistics = 1;
             break;
 
         default:
