@@ -63,6 +63,7 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
     uint32_t       play   = dur > 60000 ? dur - 20000 : dur;
     int            type_l = TONE_DTMF_L;
     int            type_h = TONE_DTMF_H;
+    uint32_t       timeout;
         
     if (type >= DTMF_MAX || (dur != 0 && dur < 10000))
         return;
@@ -97,6 +98,10 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
 
     tone_create(stream, type_l, dtmf->low_freq , vol/2, per,play, 0,dur);
     tone_create(stream, type_h, dtmf->high_freq, vol/2, per,play, 0,dur);
+
+    timeout = dur ? dur + (30 * 1000000) : (1 * 60 * 1000000);
+
+    stream_set_timeout(stream, timeout);
 }
 
 

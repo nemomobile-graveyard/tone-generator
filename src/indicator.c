@@ -12,6 +12,8 @@
 #include "tone.h"
 #include "indicator.h"
 
+#define MAX_TONE_LENGTH (1 * 60 * 1000000)
+
 #define LOG_ERROR(f, args...) log_error(logctx, f, ##args)
 #define LOG_INFO(f, args...) log_error(logctx, f, ##args)
 #define LOG_WARNING(f, args...) log_error(logctx, f, ##args)
@@ -32,7 +34,8 @@ int indicator_init(int argc, char **argv)
 
 void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
 {
-    struct stream *stream = stream_find(ausrv, ind_stream);
+    struct stream *stream  = stream_find(ausrv, ind_stream);
+    uint32_t       timeout = dur ? dur : MAX_TONE_LENGTH;
     
     if (stream != NULL) 
         indicator_stop(ausrv, PRESERVE_STREAM);
@@ -63,6 +66,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
             tone_create(stream, type, 400, vol, 1000000, 1000000, 0,0);
             break;
         }
+        timeout = MAX_TONE_LENGTH;
         break;
         
     case TONE_BUSY:
@@ -109,6 +113,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
             tone_create(stream, type, 400, vol, 3000000, 1000000, 0,0);
             break;
         }
+        timeout = MAX_TONE_LENGTH;
         break;
         
     case TONE_RADIO_NA:
@@ -120,6 +125,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         case STD_JAPAN:
             break;
         }
+        timeout = MAX_TONE_LENGTH;
         break;
         
     case TONE_ERROR:
@@ -154,6 +160,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         case STD_JAPAN:
             break;
         }
+        timeout = MAX_TONE_LENGTH;
         break;
         
     case TONE_RING:
@@ -168,12 +175,15 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         case STD_JAPAN:
             break;
         }
+        timeout = MAX_TONE_LENGTH;
         break;
         
     default:
         LOG_ERROR("%s(): invalid type %d", __FUNCTION__, type);
         break;
     }
+
+    stream_set_timeout(stream, timeout);
 }
 
 void indicator_stop(struct ausrv *ausrv, int kill_stream)

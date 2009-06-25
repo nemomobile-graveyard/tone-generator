@@ -100,6 +100,8 @@ struct ausrv *ausrv_create(struct tonegend *tonegend, char *server)
 void ausrv_destroy(struct ausrv *ausrv)
 {
     if (ausrv != NULL) {
+        stream_kill_all(ausrv);
+
         if (ausrv->context != NULL)
             pa_context_unref(ausrv->context);
         

@@ -254,6 +254,14 @@ void stream_destroy(struct stream *stream)
     LOG_ERROR("%s(): Can't find stream '%s'", __FUNCTION__, stream->name);
 }
 
+void stream_set_timeout(struct stream *stream, uint32_t timeout)
+{
+    if (timeout == 0)
+        stream->end = 0;
+    else
+        stream->end = stream->time + timeout;
+}
+
 void stream_kill_all(struct ausrv *ausrv)
 {
     struct stream *stream;
@@ -441,6 +449,9 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 
     pa_stream_write(stream->pastr, (void*)samples,length*2, free,
                     0,PA_SEEK_RELATIVE);
+
+    if (stream->end && stream->time >= stream->end)
+        stream_destroy(stream);
 }
 
 

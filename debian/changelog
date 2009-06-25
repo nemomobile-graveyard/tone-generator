@@ -1,3 +1,12 @@
+tone-generator (0.0.15) unstable; urgency=low
+
+  * Cloned a notification interface using rfc4733/indicator.
+  * Fixing ausrv_destroy() to properly wind down and not causing an assertion.
+  * Timeout for streams.
+  * Yet another case hopefully fixed for reconecting to notoriously falling.
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu, 25 Jun 2009 12:43:59 +0300
+
 tone-generator (0.0.14) unstable; urgency=low
 
   * Further fixes to avoid crashes when pulseaudio is coming back and

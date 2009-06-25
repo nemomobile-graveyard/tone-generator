@@ -28,6 +28,7 @@
 #include "dtmf.h"
 #include "note.h"
 #include "rfc4733.h"
+#include "notification.h"
 #include "interact.h"
 
 
@@ -98,7 +99,8 @@ int main(int argc, char **argv)
         dtmf_init(argc, argv)      < 0 ||
         note_init(argc, argv)      < 0 ||
         interact_init(argc, argv)  < 0 ||
-        rfc4733_init(argc, argv)   < 0  ) {
+        rfc4733_init(argc, argv)   < 0 ||
+        notif_init(argc, argv)     < 0) {
         LOG_ERROR("Error during initialization");
         return EINVAL;
     }
@@ -128,6 +130,11 @@ int main(int argc, char **argv)
 
     if (rfc4733_create(&tonegend) < 0) {
         LOG_ERROR("Can't setup rfc4733 interface on D-Bus");
+        return EIO;
+    }
+
+    if (notif_create(&tonegend) < 0) {
+        LOG_ERROR("Can't setup notification interface on D-Bus");
         return EIO;
     }
 
