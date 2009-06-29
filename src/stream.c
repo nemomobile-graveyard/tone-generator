@@ -108,6 +108,7 @@ struct stream *stream_create(struct ausrv *ausrv,
     stream->rate    = sample_rate;
     stream->pastr   = pa_stream_new(ausrv->context, name, &spec, NULL);
     stream->flush   = TRUE;
+    stream->bufsize = pa_usec_to_bytes(min_bufreq * PA_USEC_PER_MSEC, &spec);
     stream->write   = write;
     stream->destroy = destroy;
     stream->data    = data;
@@ -133,7 +134,7 @@ struct stream *stream_create(struct ausrv *ausrv,
     /* these are for the 48Khz mono 16bit streams */
     battr.maxlength = -1;                /* default (4MB) */
     battr.tlength   = pa_usec_to_bytes(target_buflen*PA_USEC_PER_MSEC, &spec);
-    battr.minreq    = pa_usec_to_bytes(min_bufreq*PA_USEC_PER_MSEC, &spec);
+    battr.minreq    = stream->bufsize;
     battr.prebuf    = -1;                /* default (tlength) */
     battr.fragsize  = -1;                /* default (tlength) */
 
@@ -169,6 +170,7 @@ void stream_destroy(struct stream *stream)
     pa_operation         *oper;
     struct timeval        tv;
     uint64_t              stop;
+    double                upt;
     double                dur;
     double                freq;
     double                flow;
@@ -220,7 +222,8 @@ void stream_destroy(struct stream *stream)
                           battr->prebuf, battr->minreq);
                 }
 
-                dur  = (double)(stop - stat->start) / 1000000.0;
+                upt  = (double)(stop - stat->start) / 1000000.0;
+                dur  = (double)(stat->wrtime - stat->firstwr)/1000000.0 + 0.01;
                 freq = (double)stat->wrcnt / dur;
                 flow = (double)stat->bcnt  / dur;
 
@@ -231,20 +234,22 @@ void stream_destroy(struct stream *stream)
 
                 TRACE("stream '%s' killed. Statistics:\n"
                       "   up %.3lfsec\n"
-                      "   flow %.0lf byte/sec\n"
+                      "   flow %.0lf byte/sec (excluding pre-buffering)\n"
                       "   write freq %.2lf buf/sec (every %.0lf msec)\n"
                       "   bufsize %u - %u - %u\n"
                       "   calc.time %u - %u - %u msec\n"
                       "   avarage cpu / buffer %u msec\n"
                       "   cpu load for all buffer calculation %.2lf%%\n"
                       "   gaps %u - %u - %u msec\n"
-                      "   underflows %u",
-                      stream->name, dur, flow, freq, 1000.0/freq,
+                      "   underflows %u\n"
+                      "   %u buffer was late out of %u (%u%%)",
+                      stream->name, upt, flow, freq, 1000.0/freq,
                       stat->minbuf, avbuf, stat->maxbuf,
                       stat->mincalc / 1000, avcalc, stat->maxcalc / 1000,
                       avcpu, ((double)avcpu * freq) / 10.0,
                       stat->mingap / 1000, avgap, stat->maxgap / 1000,
-                      stat->underflows);
+                      stat->underflows, stat->late, stat->wrcnt,
+                      (stat->late * 100) / stat->wrcnt);
             }
 
             return;
@@ -385,6 +390,7 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
     uint32_t            calcend;
     uint32_t            calc;
     uint32_t            gap;
+    uint32_t            period;
 #if 0
     int32_t             s;
     double              rad, t;
@@ -429,22 +435,43 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
         gettimeofday(&tv, NULL);
         calcend = (uint64_t)tv.tv_sec*(uint64_t)1000000 + (uint64_t)tv.tv_usec;
         calc    = calcend - start;
+        period  = (calcend - stat->wrtime) / 1000;
 
-        stat->wrcnt ++;
-        stat->bcnt += bytes;
         stat->wrtime = calcend;
-        stat->sumgap += gap;
-        stat->sumcalc += calc;
-        stat->cpucalc += cpuend - cpubeg;
-        
-        if (bytes < stat->minbuf) stat->minbuf = bytes;
-        if (bytes > stat->maxbuf) stat->maxbuf = bytes;
-        
-        if (gap < stat->mingap) stat->mingap = gap;
-        if (gap > stat->maxgap) stat->maxgap = gap;
-        
-        if (calc < stat->mincalc) stat->mincalc = calc;
-        if (calc > stat->maxcalc) stat->maxcalc = calc;
+
+        if (stat->wrcnt == 0 && bytes > stream->bufsize) {
+            TRACE("Stream '%s' pre-buffers of %u bytes", stream->name, bytes);
+            stat->firstwr = stat->wrtime;
+        }
+        else {
+            stat->wrcnt ++;
+            stat->bcnt += bytes;
+            stat->sumgap += gap;
+            stat->sumcalc += calc;
+            stat->cpucalc += cpuend - cpubeg;
+            
+            if (bytes < stat->minbuf) stat->minbuf = bytes;
+            if (bytes > stat->maxbuf) stat->maxbuf = bytes;
+            
+            if (gap < stat->mingap) stat->mingap = gap;
+            if (gap > stat->maxgap) stat->maxgap = gap;
+            
+            if (calc < stat->mincalc) stat->mincalc = calc;
+            if (calc > stat->maxcalc) stat->maxcalc = calc;
+
+#if 0
+            TRACE("Buffer writting period %umsec", period);
+#endif
+
+            if (period > min_bufreq) {
+                stat->late++;
+
+#if 0
+                TRACE("Buffer is late %umsec in stream '%s'",
+                      period - min_bufreq, stream->name);
+#endif
+            }
+        }
     }
 
     pa_stream_write(stream->pastr, (void*)samples,length*2, free,

@@ -15,10 +15,11 @@
 struct ausrv;
 
 struct stream_stat {
-    uint64_t           start;   /* starting time */
-    uint64_t           wrtime;  /* time of last writting */
-    uint32_t           wrcnt;   /* write count */
-    uint32_t           bcnt;    /* byte count */
+    uint64_t           start;        /* starting time */
+    uint64_t           firstwr;      /* first writting time */
+    uint64_t           wrtime;       /* time of last writting */
+    uint32_t           wrcnt;        /* write count */
+    uint32_t           bcnt;         /* byte count */
     uint32_t           minbuf;
     uint32_t           maxbuf;
     uint32_t           mingap;
@@ -29,6 +30,7 @@ struct stream_stat {
     uint64_t           sumcalc;
     uint32_t           cpucalc;
     uint32_t           underflows;
+    uint32_t           late;
 };
 
 struct stream {
@@ -42,6 +44,7 @@ struct stream {
     uint32_t           end;      /* timeout for the stream in usec */
     int                flush;    /* flush on destroy */
     int                killed;
+    uint32_t           bufsize;  /* buffer size */
     uint32_t         (*write)(void *, uint32_t, int16_t *, int);
     void             (*destroy)(void *);
     void              *data;     /* extension */
