@@ -207,6 +207,7 @@ void stream_destroy(struct stream *stream)
     struct timeval        tv;
     uint64_t              stop;
     double                upt;
+    double                strt;
     double                dur;
     double                freq;
     double                flow;
@@ -263,6 +264,7 @@ void stream_destroy(struct stream *stream)
                 }
 
                 upt  = (double)(stop - stat->start) / 1000000.0;
+                strt = (double)(stream->time) / 1000000.0;
                 dur  = (double)(stat->wrtime - stat->firstwr)/1000000.0 + 0.01;
                 freq = (double)stat->wrcnt / dur;
                 flow = (double)stat->bcnt  / dur;
@@ -273,7 +275,7 @@ void stream_destroy(struct stream *stream)
                 avgap  = (uint32_t)(stat->sumgap /(uint64_t)stat->wrcnt)/1000; 
 
                 TRACE("stream '%s' killed. Statistics:\n"
-                      "   up %.3lfsec\n"
+                      "   up %.3lfsec tone %.3lfsec\n"
                       "   flow %.0lf byte/sec (excluding pre-buffering)\n"
                       "   write freq %.2lf buf/sec (every %.0lf msec)\n"
                       "   bufsize %u - %u - %u\n"
@@ -283,7 +285,7 @@ void stream_destroy(struct stream *stream)
                       "   gaps %u - %u - %u msec\n"
                       "   underflows %u\n"
                       "   %u buffer was late out of %u (%u%%)",
-                      stream->name, upt, flow, freq, 1000.0/freq,
+                      stream->name, upt, strt, flow, freq, 1000.0/freq,
                       stat->minbuf, avbuf, stat->maxbuf,
                       stat->mincalc / 1000, avcalc, stat->maxcalc / 1000,
                       avcpu, ((double)avcpu * freq) / 10.0,
