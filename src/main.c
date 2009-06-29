@@ -24,6 +24,7 @@
 #include "ausrv.h"
 #include "stream.h"
 #include "tone.h"
+#include "envelop.h"
 #include "indicator.h"
 #include "dtmf.h"
 #include "note.h"
@@ -73,8 +74,8 @@ int main(int argc, char **argv)
     cmdopt.interactive = 0;
     cmdopt.sample_rate = 48000;
     cmdopt.statistics = 0;
-    cmdopt.buflen = 500;
-    cmdopt.minreq = 50;
+    cmdopt.buflen = 0;
+    cmdopt.minreq = 0;
     
     parse_options(argc, argv, &cmdopt);
 
@@ -95,6 +96,7 @@ int main(int argc, char **argv)
         ausrv_init(argc, argv)     < 0 ||
         stream_init(argc, argv)    < 0 ||
         tone_init(argc, argv)      < 0 ||
+        envelop_init(argc, argv)   < 0 ||
         indicator_init(argc, argv) < 0 ||
         dtmf_init(argc, argv)      < 0 ||
         note_init(argc, argv)      < 0 ||

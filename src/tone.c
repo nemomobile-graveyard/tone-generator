@@ -10,6 +10,7 @@
 #include <trace/trace.h>
 
 #include "stream.h"
+#include "envelop.h"
 #include "tone.h"
 
 #ifndef TRUE
@@ -57,7 +58,7 @@ static inline int32_t singen_write(struct singen *singen)
     return (int32_t)(singen->n0 / singen->offs);
 }
 
-
+static void setup_envelop_for_tone(struct tone *, int, uint32_t, uint32_t);
 
 int tone_init(int argc, char **argv)
 {
@@ -106,13 +107,15 @@ struct tone *tone_create(struct stream *stream,
 
     TRACE("%s(): %s", __FUNCTION__, link ? "chain" : "don't chain");
 
-    tone->next   = next;
-    tone->stream = stream;
-    tone->type   = type;
-    tone->period = period;
-    tone->play   = play;
-    tone->start  = (uint64_t)(time + start) * SCALE;
-    tone->end    = duration ? tone->start + (uint64_t)(duration * SCALE) : 0;
+    tone->next    = next;
+    tone->stream  = stream;
+    tone->type    = type;
+    tone->period  = period;
+    tone->play    = play;
+    tone->start   = (uint64_t)(time + start) * SCALE;
+    tone->end     = duration ? tone->start + (uint64_t)(duration * SCALE) : 0;
+    
+    setup_envelop_for_tone(tone, type, play, duration);
 
     if (!freq)
         tone->backend = BACKEND_UNKNOWN;
@@ -120,6 +123,7 @@ struct tone *tone_create(struct stream *stream,
         tone->backend = BACKEND_SINGEN;
         singen_init(&tone->singen, freq, stream->rate, volume);
     }
+
 
     if (link)
         link->chain = tone;
@@ -147,6 +151,7 @@ void tone_destroy(struct tone *tone, int kill_chain)
                 if (kill_chain) {
                     for (link = tone->chain;  link;  link = chain) {
                         chain = link->chain;
+                        envelop_destroy(link->envelop);
                         free(link);
                     }
                     prev->next = tone->next;
@@ -156,6 +161,7 @@ void tone_destroy(struct tone *tone, int kill_chain)
                     link->next = tone->next;
                 } 
             }
+            envelop_destroy(tone->envelop);
             free(tone);
             return;
         }
@@ -182,7 +188,9 @@ uint32_t tone_write_callback(void *data, uint32_t time, int16_t *buf, int len)
     struct tone   *tone;
     struct tone   *next;
     uint64_t       t, dt;
+    uint32_t       abst;
     uint32_t       relt;
+    int32_t        sine;
     int32_t        sample;
     int            i;
     
@@ -203,15 +211,19 @@ uint32_t tone_write_callback(void *data, uint32_t time, int16_t *buf, int len)
                 if (tone->end && tone->end < t)
                     tone_destroy(tone, PRESERVE_CHAIN);
                 else if (t > tone->start) {
-                    relt = (uint32_t)((t - tone->start)/SCALE) % tone->period;
+                    abst = (uint32_t)((t - tone->start) / SCALE);
+                    relt = abst % tone->period;
 
                     if (relt < tone->play) {
                         switch (tone->backend) {
 
                         case BACKEND_SINGEN:
-                            sample += singen_write(&tone->singen);
+                            sine    = singen_write(&tone->singen);
+                            sample += envelop_apply(tone->envelop, sine,
+                                                    tone->reltime ? relt:abst);
                             break;
                         }
+
                     }
                 }
             }
@@ -247,7 +259,39 @@ void tone_destroy_callback(void *data)
     }
 }
 
+static void setup_envelop_for_tone(struct tone *tone, int type, 
+                                   uint32_t play, uint32_t duration)
+{
+    switch (type) {
 
+    case TONE_DIAL:
+    case TONE_DTMF_IND_L:
+    case TONE_DTMF_IND_H:
+        tone->reltime = FALSE;
+        tone->envelop = envelop_create(ENVELOP_RAMP_LINEAR, 10000, 0,duration);
+        break;
+
+    case TONE_BUSY:
+    case TONE_CONGEST:
+    case TONE_RADIO_ACK:
+    case TONE_RADIO_NA:
+    case TONE_WAIT:
+    case TONE_RING:
+    case TONE_DTMF_L:
+    case TONE_DTMF_H:
+        tone->reltime = TRUE;
+        tone->envelop = envelop_create(ENVELOP_RAMP_LINEAR, 10000, 0, play);
+        break;
+
+    case TONE_ERROR:
+        tone->reltime = TRUE;
+        tone->envelop = envelop_create(ENVELOP_RAMP_LINEAR, 3000, 0, play);
+        break;
+
+    default:
+        break;
+    }
+}
 
 /*
  * Local Variables:

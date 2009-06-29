@@ -13,26 +13,28 @@
 /*
  * predefined tone types
  */
-#define TONE_UNDEFINED   0
-#define TONE_DIAL        1
-#define TONE_BUSY        2
-#define TONE_CONGEST     3
-#define TONE_RADIO_ACK   4
-#define TONE_RADIO_NA    5
-#define TONE_ERROR       6
-#define TONE_WAIT        7
-#define TONE_RING        8
-#define TONE_DTMF_IND_L  9
-#define TONE_DTMF_IND_H  10
-#define TONE_DTMF_L      11
-#define TONE_DTMF_H      12
-#define TONE_NOTE_0      13
-#define TONE_SINGEN_END  14
+#define TONE_UNDEFINED       0
+#define TONE_DIAL            1
+#define TONE_BUSY            2
+#define TONE_CONGEST         3
+#define TONE_RADIO_ACK       4
+#define TONE_RADIO_NA        5
+#define TONE_ERROR           6
+#define TONE_WAIT            7
+#define TONE_RING            8
+#define TONE_DTMF_IND_L      9
+#define TONE_DTMF_IND_H      10
+#define TONE_DTMF_L          11
+#define TONE_DTMF_H          12
+#define TONE_NOTE_0          13
+#define TONE_SINGEN_END      14
 
-#define BACKEND_UNKNOWN  0
-#define BACKEND_SINGEN   1
+#define BACKEND_UNKNOWN      0
+#define BACKEND_SINGEN       1
+
 
 struct stream;
+union  envelop;
 
 struct singen {
     int64_t        m;
@@ -40,6 +42,7 @@ struct singen {
     int64_t        n1;
     int64_t        offs;
 };
+
 
 struct tone {
     struct tone       *next;
@@ -54,6 +57,8 @@ struct tone {
     union {
         struct singen  singen;
     };
+    int                reltime; /* relative time to be passed to env. func's */
+    union envelop     *envelop;
 };
 
 

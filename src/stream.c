@@ -52,11 +52,19 @@ void stream_print_statistics(int print)
 
 void stream_buffering_parameters(int tlen, int minreq)
 {
-    if (tlen < 20 || minreq < 10 || minreq > tlen - 10)
-        LOG_ERROR("Ignoring invalid buffering parameters %d %d", tlen, minreq);
+    if (!tlen && !minreq) {
+        target_buflen = 0;
+        min_bufreq = 0;
+    }
     else {
-        target_buflen = tlen;
-        min_bufreq = minreq;
+        if (tlen < 20 || minreq < 10 || minreq > tlen - 10) {
+            LOG_ERROR("Ignoring invalid buffering parameters %d %d",
+                      tlen, minreq);
+        }
+        else {
+            target_buflen = tlen;
+            min_bufreq = minreq;
+        }
     }
 }
 
@@ -75,6 +83,10 @@ struct stream *stream_create(struct ausrv *ausrv,
     struct timeval      tv;
     uint64_t            start;
     struct stream_stat *stat;
+    uint32_t            bufsize;
+    uint32_t            tlength;
+    char                tlstr[32];
+    char                bfstr[32];
  
     if (!ausrv->connected) {
         LOG_ERROR("Can't create stream '%s': no server connected", name);
@@ -92,6 +104,17 @@ struct stream *stream_create(struct ausrv *ausrv,
     spec.rate     = sample_rate;
     spec.channels = 1;          /* e.g. MONO */
 
+    
+    if (min_bufreq > 0)
+        bufsize = pa_usec_to_bytes(min_bufreq * PA_USEC_PER_MSEC, &spec);
+    else
+        bufsize = (uint32_t)-1;
+
+    if (target_buflen > 0)
+        tlength = pa_usec_to_bytes(target_buflen * PA_USEC_PER_MSEC, &spec);
+    else
+        tlength = (uint32_t)-1;
+
     gettimeofday(&tv, NULL);
     start = (uint64_t)tv.tv_sec * (uint64_t)1000000 + (uint64_t)tv.tv_usec;
 
@@ -108,7 +131,7 @@ struct stream *stream_create(struct ausrv *ausrv,
     stream->rate    = sample_rate;
     stream->pastr   = pa_stream_new(ausrv->context, name, &spec, NULL);
     stream->flush   = TRUE;
-    stream->bufsize = pa_usec_to_bytes(min_bufreq * PA_USEC_PER_MSEC, &spec);
+    stream->bufsize = bufsize;
     stream->write   = write;
     stream->destroy = destroy;
     stream->data    = data;
@@ -133,8 +156,8 @@ struct stream *stream_create(struct ausrv *ausrv,
 
     /* these are for the 48Khz mono 16bit streams */
     battr.maxlength = -1;                /* default (4MB) */
-    battr.tlength   = pa_usec_to_bytes(target_buflen*PA_USEC_PER_MSEC, &spec);
-    battr.minreq    = stream->bufsize;
+    battr.tlength   = tlength;
+    battr.minreq    = bufsize;
     battr.prebuf    = -1;                /* default (tlength) */
     battr.fragsize  = -1;                /* default (tlength) */
 
@@ -151,10 +174,20 @@ struct stream *stream_create(struct ausrv *ausrv,
     TRACE("%s(): stream '%s' created", __FUNCTION__, stream->name);
 
     if (print_statistics) {
+        if (battr.tlength == (uint32_t)-1)
+            snprintf(tlstr, sizeof(tlstr), "<default>");
+        else
+            snprintf(tlstr, sizeof(tlstr), "%u", battr.tlength);
+
+        if (battr.minreq == (uint32_t)-1)
+            snprintf(bfstr, sizeof(tlstr), "<default>");
+        else
+            snprintf(bfstr, sizeof(tlstr), "%u", battr.minreq);
+
         TRACE("Requested buffer attributes:\n"
-              "   tlength  %u\n"
-              "   minreq   %u",
-              battr.tlength, battr.minreq);
+              "   tlength  %s\n"
+              "   minreq   %s",
+              tlstr, bfstr);
     }
 
     return stream;
@@ -439,9 +472,10 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 
         stat->wrtime = calcend;
 
-        if (stat->wrcnt == 0 && bytes > stream->bufsize) {
+        if (stat->bcnt == 0 /* && bytes > stream->bufsize */) {
             TRACE("Stream '%s' pre-buffers of %u bytes", stream->name, bytes);
             stat->firstwr = stat->wrtime;
+            stat->bcnt    = bytes;
         }
         else {
             stat->wrcnt ++;
@@ -463,7 +497,7 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
             TRACE("Buffer writting period %umsec", period);
 #endif
 
-            if (period > min_bufreq) {
+            if (period > (uint32_t)min_bufreq) {
                 stat->late++;
 
 #if 0
