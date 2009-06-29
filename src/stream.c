@@ -151,6 +151,8 @@ struct stream *stream_create(struct ausrv *ausrv,
         
         free(stream);
 
+        TRACE("%s(): stream creation of '%s' failed", __FUNCTION__, name);
+
         return NULL;    
     }
 
@@ -212,8 +214,10 @@ void stream_destroy(struct stream *stream)
     uint32_t              avcpu;
     uint32_t              avgap;
     
-    if (stream->killed)
+    if (stream->killed) {
+        TRACE("%s(): stream is already killed", __FUNCTION__);
         return;
+    }
 
     gettimeofday(&tv, NULL);
     stop = (uint64_t)tv.tv_sec * (uint64_t)1000000 + (uint64_t)tv.tv_usec;
