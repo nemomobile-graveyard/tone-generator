@@ -49,6 +49,11 @@ struct stream {
     void             (*destroy)(void *);
     void              *data;     /* extension */
     struct stream_stat stat;     /* statistics */
+    struct {
+        int16_t  *samples;
+        size_t    buflen;
+        uint32_t  cpu;
+    }                  buf;
 };
 
 int stream_init(int, char **);

@@ -25,6 +25,7 @@ static void underflow_callback(pa_stream *, void *);
 static void write_callback(pa_stream *, size_t, void *);
 static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
+static int16_t *write_samples(struct stream *, size_t, uint32_t *);
 
 static uint32_t default_rate     = 48000;
 static int      print_statistics = 0;
@@ -233,7 +234,9 @@ void stream_destroy(struct stream *stream)
 
             if (stream->destroy != NULL)
                 stream->destroy(stream->data);
-    
+
+            free(stream->buf.samples);
+            
             pa_stream_set_write_callback(pastr, NULL,NULL);
 
             if (stream->flush)
@@ -335,7 +338,6 @@ struct stream *stream_find(struct ausrv *ausrv, char *name)
     return stream;
 }
 
-
 static void state_callback(pa_stream *pastr, void *userdata)
 {
 #define CHECK_STREAM(s,p) if (!s || s->pastr != p) { goto confused; }
@@ -408,29 +410,19 @@ static void underflow_callback(pa_stream *pastr, void *userdata)
 
 static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 {
-    struct stream      *stream = (struct stream *)userdata;
-    struct stream_stat *stat   = &stream->stat;
-#if 0
-    struct tone        *tone;
-    struct tone        *next;
-#endif
-    int16_t            *samples;
-    int                 length;
-    struct timeval      tv;
-    clock_t             cpubeg;
-    clock_t             cpuend;
-    uint32_t            start;
-    uint32_t            calcend;
-    uint32_t            calc;
-    uint32_t            gap;
-    uint32_t            period;
-#if 0
-    int32_t             s;
-    double              rad, t;
-    double              d;
-    uint32_t            it;
-    int                 i;
-#endif
+    struct stream        *stream = (struct stream *)userdata;
+    struct stream_stat   *stat   = &stream->stat;
+    const pa_buffer_attr *battr;
+    int16_t              *samples;
+    size_t                buflen;
+    struct timeval        tv;
+    uint32_t              start;
+    uint32_t              gap;
+    uint32_t              calcend;
+    uint32_t              calc;
+    uint32_t              period;
+    uint32_t              cpu;
+
 
     if (!stream || stream->pastr != pastr) {
         LOG_ERROR("%s(): Confused with data structures", __FUNCTION__);
@@ -450,69 +442,86 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
     TRACE("%s(): %d bytes", __FUNCTION__, bytes);
 #endif
 
-    length = bytes/2;
-
-    if ((samples = (int16_t *)malloc(length*2)) == NULL) {
-        LOG_ERROR("%s(): failed to allocate memory", __FUNCTION__);
-        return;
+    if (stream->buf.samples == NULL) {
+        samples = write_samples(stream, bytes, &cpu);
+        buflen  = bytes;
     }
+    else {
+        samples = stream->buf.samples;
+        buflen  = stream->buf.buflen;
+        cpu     = stream->buf.cpu;
 
-    if (print_statistics)
-        cpubeg = clock();
+        stream->buf.samples = NULL;
+        stream->buf.cpu = 0;
+    }
+        
 
-    stream->time = stream->write(stream->data, stream->time, samples, length);
- 
-    if (print_statistics) {
-        cpuend = clock();
+    if (samples != NULL) {
 
-        gettimeofday(&tv, NULL);
-        calcend = (uint64_t)tv.tv_sec*(uint64_t)1000000 + (uint64_t)tv.tv_usec;
-        calc    = calcend - start;
-        period  = (calcend - stat->wrtime) / 1000;
+        if (print_statistics) {
+            gettimeofday(&tv, NULL);
+            calcend = (uint64_t)tv.tv_sec * (uint64_t)1000000 + 
+                      (uint64_t)tv.tv_usec;
+            calc    = calcend - start;
+            period  = (calcend - stat->wrtime) / 1000;
 
-        stat->wrtime = calcend;
+            stat->wrtime = calcend;
 
-        if (stat->bcnt == 0 /* && bytes > stream->bufsize */) {
-            TRACE("Stream '%s' pre-buffers of %u bytes", stream->name, bytes);
-            stat->firstwr = stat->wrtime;
-            stat->bcnt    = bytes;
+            if (stat->bcnt == 0 /* && buflen > stream->bufsize */) {
+                TRACE("Stream '%s' pre-buffers of %u bytes",
+                      stream->name, buflen);
+                stat->firstwr = stat->wrtime;
+                stat->bcnt    = buflen;
+            }
+            else {
+                stat->wrcnt ++;
+                stat->bcnt += buflen;
+                stat->sumgap += gap;
+                stat->sumcalc += calc;
+                stat->cpucalc += cpu;
+                
+                if (buflen < stat->minbuf) stat->minbuf = buflen;
+                if (buflen > stat->maxbuf) stat->maxbuf = buflen;
+                
+                if (gap < stat->mingap) stat->mingap = gap;
+                if (gap > stat->maxgap) stat->maxgap = gap;
+                
+                if (calc < stat->mincalc) stat->mincalc = calc;
+                if (calc > stat->maxcalc) stat->maxcalc = calc;
+
+#if 0
+                TRACE("Buffer writting period %umsec", period);
+#endif
+                
+                if (period > (uint32_t)min_bufreq) {
+                    stat->late++;
+                    
+#if 0
+                    TRACE("Buffer is late %umsec in stream '%s'",
+                          period - min_bufreq, stream->name);
+#endif
+                }
+            }
         }
+
+        pa_stream_write(stream->pastr, (void*)samples,buflen, free,
+                        0,PA_SEEK_RELATIVE);
+
+        if (stream->end && stream->time >= stream->end)
+            stream_destroy(stream);
         else {
-            stat->wrcnt ++;
-            stat->bcnt += bytes;
-            stat->sumgap += gap;
-            stat->sumcalc += calc;
-            stat->cpucalc += cpuend - cpubeg;
-            
-            if (bytes < stat->minbuf) stat->minbuf = bytes;
-            if (bytes > stat->maxbuf) stat->maxbuf = bytes;
-            
-            if (gap < stat->mingap) stat->mingap = gap;
-            if (gap > stat->maxgap) stat->maxgap = gap;
-            
-            if (calc < stat->mincalc) stat->mincalc = calc;
-            if (calc > stat->maxcalc) stat->maxcalc = calc;
+            if (stream->bufsize == (uint32_t)-1) {
+                if ((battr = pa_stream_get_buffer_attr(pastr)) != NULL)
+                    stream->bufsize = battr->minreq;
+            }
 
-#if 0
-            TRACE("Buffer writting period %umsec", period);
-#endif
-
-            if (period > (uint32_t)min_bufreq) {
-                stat->late++;
-
-#if 0
-                TRACE("Buffer is late %umsec in stream '%s'",
-                      period - min_bufreq, stream->name);
-#endif
+            if (stream->bufsize != (uint32_t)-1) {
+                stream->buf.samples = write_samples(stream, stream->bufsize,
+                                                    &stream->buf.cpu);
+                stream->buf.buflen  = stream->bufsize;
             }
         }
     }
-
-    pa_stream_write(stream->pastr, (void*)samples,length*2, free,
-                    0,PA_SEEK_RELATIVE);
-
-    if (stream->end && stream->time >= stream->end)
-        stream_destroy(stream);
 }
 
 
@@ -553,6 +562,33 @@ static void drain_callback(pa_stream *pastr, int success, void *userdata)
     }
 
     TRACE("%s(): stream '%s' drained", __FUNCTION__, stream->name);
+}
+
+
+static int16_t *write_samples(struct stream *stream, size_t bytes, 
+                              uint32_t *cpu)
+{
+    int16_t  *samples;
+    int       length;
+    clock_t   cpubeg;
+    clock_t   cpuend;
+
+    length = bytes/2;
+
+    if ((samples = (int16_t *)malloc(length*2)) == NULL) {
+        LOG_ERROR("%s(): failed to allocate memory", __FUNCTION__);
+        return NULL;
+    }
+
+    cpubeg = print_statistics ? clock() : 0;
+
+    stream->time = stream->write(stream->data, stream->time, samples, length);
+ 
+    cpuend = print_statistics ? clock() : 0;
+
+    *cpu = cpuend - cpubeg;
+
+    return samples;
 }
 
 
