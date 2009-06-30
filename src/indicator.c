@@ -191,6 +191,9 @@ void indicator_stop(struct ausrv *ausrv, int kill_stream)
     struct stream *stream = stream_find(ausrv, ind_stream);
     struct tone   *tone;
     struct tone   *hd;
+
+    TRACE("%s(kill_stream=%s) stream=%s", __FUNCTION__, 
+          kill_stream ? "true":"false", stream ? stream->name:"<no-stream>");
     
     if (stream != NULL) {
         if (kill_stream)
