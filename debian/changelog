@@ -1,6 +1,8 @@
 tone-generator (0.0.17) unstable; urgency=low
 
   * Proper setting of serial No in D-Bus message replies
+  * To lower the DTMF and other tone playback delays the pulseaudio buffersize
+    is set to 600msec
 
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu, 02 Jul 2009 20:36:00 +0300
 
