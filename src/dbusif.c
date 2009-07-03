@@ -158,6 +158,7 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
     struct dbusif   *dbusif = (struct dbusif *)user_data;
     struct tonegend *tonegend = dbusif->tonegend;
     DBusMessage     *reply  = NULL;
+    uint32_t         ser;
     int            (*method)(DBusMessage *, struct tonegend *);
     const char      *intf;
     const char      *memb;
@@ -175,9 +176,10 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
         intf = dbus_message_get_interface(msg);
         memb = dbus_message_get_member(msg);
         sig  = dbus_message_get_signature(msg);
+        ser  = dbus_message_get_serial(msg);
 
-        TRACE("%s(): message received: '%s', '%s', '%s'",
-              __FUNCTION__, intf, memb, sig);
+        TRACE("%s(): message no #%u received: '%s', '%s', '%s'",
+              __FUNCTION__, ser, intf, memb, sig);
         
         key = create_key((gchar *)memb, (gchar *)sig, (gchar *)intf);
         method = g_hash_table_lookup(dbusif->hash, key);
@@ -199,16 +201,19 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
             }
             reply = dbus_message_new_error(msg, errname, errdesc);
         }
+
+        dbus_message_set_reply_serial(msg, ser);
         
         if (!dbus_connection_send(dbusif->conn, reply, NULL))
             LOG_ERROR("%s(): D-Bus message reply failure", __FUNCTION__);
+        else
+            TRACE("%s(): message no #%u replied", __FUNCTION__, ser);
 
         dbus_message_unref(reply);
     }
     
     return DBUS_HANDLER_RESULT_HANDLED;
 }
-
 
 static gchar *create_key(gchar *memb, gchar *sign, gchar *intf)
 {

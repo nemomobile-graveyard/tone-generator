@@ -53,7 +53,7 @@ script
 
 	echo "Signalling standard = $std"
 
-        exec /usr/bin/tonegend $signal_option > /dev/null
+        exec /usr/bin/tonegend $signal_option -b 600 > /dev/null
 end script
 
 respawn

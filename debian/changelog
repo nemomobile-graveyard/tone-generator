@@ -1,3 +1,9 @@
+tone-generator (0.0.17) unstable; urgency=low
+
+  * Proper setting of serial No in D-Bus message replies
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu, 02 Jul 2009 20:36:00 +0300
+
 tone-generator (0.0.16) unstable; urgency=low
 
   * Statistics for streams
