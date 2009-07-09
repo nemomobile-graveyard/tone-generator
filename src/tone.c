@@ -145,6 +145,9 @@ void tone_destroy(struct tone *tone, int kill_chain)
 
     for (prev = (struct tone *)&stream->data;    prev;    prev = prev->next) {
         if (prev->next == tone) {
+
+            TRACE("%s(%s_chain)", __FUNCTION__, kill_chain?"kill":"preserve");
+
             if ((link = tone->chain) == NULL)
                 prev->next = tone->next;
             else {

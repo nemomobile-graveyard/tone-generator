@@ -104,7 +104,11 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
 
     if (event < DTMF_MAX) {
         tone_type = tone_type_dtmf;
+#if 0
         dtmf_play(ausrv, event, volume, duration * 1000);
+#else
+        dtmf_play(ausrv, event, volume, 0);
+#endif
     }
     else {
         switch (event) {

@@ -114,6 +114,7 @@ void dtmf_stop(struct ausrv *ausrv)
 
     if (stream != NULL) {
         for (tone = (struct tone *)stream->data;  tone;  tone = next) {
+
             next = tone->next;
 
             switch (tone->type) {
