@@ -2,6 +2,7 @@ tone-generator (0.1.1) unstable; urgency=low
 
   * Lingering DTMF tones
   * Fixes and improvements in the buffering
+  * Linear ramp-down for DTMF tones when D-Bus stop-tone comes
 
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu, 09 Jul 2009 00:25:00 +0300
 
