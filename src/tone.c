@@ -170,6 +170,7 @@ void tone_destroy(struct tone *tone, int kill_chain)
     LOG_ERROR("%s(): Can't find the stream to be destoyed", __FUNCTION__);
 }
 
+
 int tone_chainable(int type)
 {
     switch (type) {
@@ -182,9 +183,8 @@ int tone_chainable(int type)
     }
 }
 
-uint32_t tone_write_callback(void *data, uint32_t time, int16_t *buf, int len)
+uint32_t tone_write_callback(struct stream *stream, int16_t *buf, int len)
 {
-    struct stream *stream;
     struct tone   *tone;
     struct tone   *next;
     uint64_t       t, dt;
@@ -194,14 +194,14 @@ uint32_t tone_write_callback(void *data, uint32_t time, int16_t *buf, int len)
     int32_t        sample;
     int            i;
     
-    t = (uint64_t)time * SCALE;
+    t  = (uint64_t)stream->time * SCALE;
+    dt = (1000000ULL * SCALE) / (uint64_t)stream->rate;
 
-    if (data == NULL) 
+    if (stream->data == NULL) {
         memset(buf, 0, len*sizeof(*buf));
+        t += dt * (uint64_t)len;
+    }
     else {
-        stream = ((struct tone *)data)->stream;
-        dt = (1000000ULL * SCALE) / (uint64_t)stream->rate;
-
         for (i = 0; i < len; i++) {
             sample = 0;
 
@@ -226,7 +226,7 @@ uint32_t tone_write_callback(void *data, uint32_t time, int16_t *buf, int len)
 
                     }
                 }
-            }
+            } /* for */
             
             if (sample > 32767)
                 buf[i] = 32767;

@@ -21,6 +21,12 @@
 
 #define TRACE(f, args...) trace_write(trctx, trflags, trkeys, f, ##args)
 
+enum tone_type {
+    tone_type_notone = 0,
+    tone_type_indicator,
+    tone_type_dtmf
+};
+
 struct method {
     char  *intf;                                    /* interface name */
     char  *memb;                                    /* method name */
@@ -31,6 +37,7 @@ struct method {
 static int start_event_tone(DBusMessage *, struct tonegend *);
 static int stop_tone(DBusMessage *, struct tonegend *);
 static uint32_t linear_volume(int);
+static enum tone_type tone_type;
 
 
 static struct method  method_defs[] = {
@@ -95,8 +102,10 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
           __FUNCTION__, event, dbm0, volume, duration);
 
 
-    if (event < DTMF_MAX)
+    if (event < DTMF_MAX) {
+        tone_type = tone_type_dtmf;
         dtmf_play(ausrv, event, volume, duration * 1000);
+    }
     else {
         switch (event) {
 #if 0
@@ -116,6 +125,7 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
             return FALSE;
         }
 
+        tone_type = tone_type_indicator;
         indicator_play(ausrv, indtype, volume, duration * 1000);
     }
 
@@ -130,7 +140,13 @@ static int stop_tone(DBusMessage *msg, struct tonegend *tonegend)
 
     TRACE("%s()", __FUNCTION__);
 
-    indicator_stop(ausrv, KILL_STREAM);
+    switch (tone_type) {
+    case tone_type_indicator:  indicator_stop(ausrv, KILL_STREAM);      break;
+    case tone_type_dtmf:       dtmf_stop(ausrv);                        break;
+    default:                                                            break;
+    }
+
+    tone_type = tone_type_notone;
 
     return TRUE;
 }

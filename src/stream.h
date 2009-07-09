@@ -15,11 +15,9 @@
 struct ausrv;
 
 struct stream_stat {
-    uint64_t           start;        /* starting time */
     uint64_t           firstwr;      /* first writting time */
     uint64_t           wrtime;       /* time of last writting */
     uint32_t           wrcnt;        /* write count */
-    uint32_t           bcnt;         /* byte count */
     uint32_t           minbuf;
     uint32_t           maxbuf;
     uint32_t           mingap;
@@ -40,12 +38,14 @@ struct stream {
     char              *name;     /* stream name */
     uint32_t           rate;     /* sample rate */
     pa_stream         *pastr;    /* pulse audio stream */
-    uint32_t           time;     /* time in usecs */
-    uint32_t           end;      /* timeout for the stream in usec */
+    uint64_t           start;    /* wall clock time of stream creation */
+    uint32_t           time;     /* buffer time in usecs */
+    uint32_t           end;      /* buffer timeout for the stream in usec */
     int                flush;    /* flush on destroy */
     int                killed;
-    uint32_t           bufsize;  /* buffer size */
-    uint32_t         (*write)(void *, uint32_t, int16_t *, int);
+    uint32_t           bufsize;  /* write-ahead-buffer size (ie. minreq) */
+    uint32_t           bcnt;     /* byte count */
+    uint32_t         (*write)(struct stream *, int16_t *, int);
     void             (*destroy)(void *);
     void              *data;     /* extension */
     struct stream_stat stat;     /* statistics */
@@ -61,11 +61,12 @@ void stream_set_default_samplerate(uint32_t);
 void stream_print_statistics(int);
 void stream_buffering_parameters(int, int);
 struct stream *stream_create(struct ausrv *, char *, char *, uint32_t,
-                             uint32_t (*)(void*, uint32_t, int16_t*, int),
+                             uint32_t (*)(struct stream *, int16_t*, int),
                              void (*)(void*), void *);
 void stream_destroy(struct stream *);
 void stream_set_timeout(struct stream *, uint32_t);
 void stream_kill_all(struct ausrv *);
+void stream_clean_buffer(struct stream *);
 struct stream *stream_find(struct ausrv *, char *);
 
 

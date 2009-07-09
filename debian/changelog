@@ -1,3 +1,10 @@
+tone-generator (0.1.1) unstable; urgency=low
+
+  * Lingering DTMF tones
+  * Fixes and improvements in the buffering
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Thu, 09 Jul 2009 00:25:00 +0300
+
 tone-generator (0.0.17) unstable; urgency=low
 
   * Proper setting of serial No in D-Bus message replies

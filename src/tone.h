@@ -67,7 +67,7 @@ struct tone *tone_create(struct stream *, int, uint32_t, uint32_t,
                          uint32_t, uint32_t, uint32_t, uint32_t);
 void tone_destroy(struct tone *, int);
 int tone_chainable(int);
-uint32_t tone_write_callback(void *, uint32_t, int16_t  *, int);
+uint32_t tone_write_callback(struct stream *, int16_t *, int);
 void tone_destroy_callback(void *);
 
 

@@ -104,6 +104,39 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
     stream_set_timeout(stream, timeout);
 }
 
+void dtmf_stop(struct ausrv *ausrv)
+{
+    struct stream *stream = stream_find(ausrv, dtmf_stream);
+    struct tone   *tone;
+    struct tone   *next;
+
+    TRACE("%s() stream=%s", __FUNCTION__, stream ? stream->name:"<no-stream>");
+
+    if (stream != NULL) {
+        for (tone = (struct tone *)stream->data;  tone;  tone = next) {
+            next = tone->next;
+
+            switch (tone->type) {
+                
+            case TONE_DTMF_IND_L:
+            case TONE_DTMF_IND_H:
+                /* in the future a linear ramp-down enevlop can be set */
+                tone_destroy(tone, KILL_CHAIN);
+                break;
+
+            default:
+                if (!tone_chainable(tone->type))
+                    tone_destroy(tone, KILL_CHAIN);
+                break;
+            }
+        }
+
+        if (stream->data == NULL)
+            stream_clean_buffer(stream);
+
+        stream_set_timeout(stream, 10 * 1000000);
+    }
+}
 
 
 /*

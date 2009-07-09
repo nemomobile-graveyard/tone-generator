@@ -22,10 +22,11 @@
 
 static void state_callback(pa_stream *, void *);
 static void underflow_callback(pa_stream *, void *);
+static void suspended_callback(pa_stream *, void *);
 static void write_callback(pa_stream *, size_t, void *);
 static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
-static int16_t *write_samples(struct stream *, size_t, uint32_t *);
+static void write_samples(struct stream *, int16_t *,size_t, uint32_t *);
 
 static uint32_t default_rate     = 48000;
 static int      print_statistics = 0;
@@ -73,7 +74,7 @@ struct stream *stream_create(struct ausrv *ausrv,
                              char         *name,
                              char         *sink,
                              uint32_t      sample_rate,
-                             uint32_t    (*write)(void*,uint32_t,int16_t*,int),
+                             uint32_t    (*write)(struct stream*,int16_t*,int),
                              void        (*destroy)(void*), 
                              void         *data)
 {
@@ -131,6 +132,7 @@ struct stream *stream_create(struct ausrv *ausrv,
     stream->name    = strdup(name);
     stream->rate    = sample_rate;
     stream->pastr   = pa_stream_new(ausrv->context, name, &spec, NULL);
+    stream->start   = start;
     stream->flush   = TRUE;
     stream->bufsize = bufsize;
     stream->write   = write;
@@ -139,7 +141,6 @@ struct stream *stream_create(struct ausrv *ausrv,
 
     if (print_statistics) {
         stat = &stream->stat;
-        stat->start   = start;
         stat->wrtime  = start;
         stat->minbuf  = -1;
         stat->mingap  = -1;
@@ -168,6 +169,8 @@ struct stream *stream_create(struct ausrv *ausrv,
 
     pa_stream_set_state_callback(stream->pastr, state_callback,(void*)stream);
     pa_stream_set_underflow_callback(stream->pastr, underflow_callback,
+                                     (void *)stream);
+    pa_stream_set_suspended_callback(stream->pastr, suspended_callback,
                                      (void *)stream);
     pa_stream_set_write_callback(stream->pastr, write_callback,(void *)stream);
     pa_stream_connect_playback(stream->pastr, sink, &battr, flags, NULL, NULL);
@@ -263,13 +266,13 @@ void stream_destroy(struct stream *stream)
                           battr->prebuf, battr->minreq);
                 }
 
-                upt  = (double)(stop - stat->start) / 1000000.0;
+                upt  = (double)(stop - stream->start) / 1000000.0;
                 strt = (double)(stream->time) / 1000000.0;
                 dur  = (double)(stat->wrtime - stat->firstwr)/1000000.0 + 0.01;
                 freq = (double)stat->wrcnt / dur;
-                flow = (double)stat->bcnt  / dur;
+                flow = (double)stream->bcnt / dur;
 
-                avbuf  = stat->bcnt / stat->wrcnt;
+                avbuf  = stream->bcnt / stat->wrcnt;
                 avcpu  = (stat->cpucalc / stat->wrcnt) / 1000;
                 avcalc = (uint32_t)(stat->sumcalc/(uint64_t)stat->wrcnt)/1000; 
                 avgap  = (uint32_t)(stat->sumgap /(uint64_t)stat->wrcnt)/1000; 
@@ -325,10 +328,38 @@ void stream_kill_all(struct ausrv *ausrv)
 
         pa_stream_set_state_callback(stream->pastr, NULL,NULL);
         pa_stream_set_underflow_callback(stream->pastr, NULL,NULL);
+        pa_stream_set_suspended_callback(stream->pastr, NULL,NULL);
         pa_stream_set_write_callback(stream->pastr, NULL,NULL);
 
         free(stream->name);
         free(stream);
+    }
+}
+
+void stream_clean_buffer(struct stream *stream)
+{
+    struct timeval  tv;
+    uint64_t        now;
+    uint32_t        bcnt;
+    size_t          offs;
+    size_t          len;
+
+    gettimeofday(&tv, NULL);
+    now  = (uint64_t)tv.tv_sec * (uint64_t)1000000 + (uint64_t)tv.tv_usec;
+    bcnt = ((now - stream->start) * (uint64_t)stream->rate) / 1000000ULL;
+    bcnt *= 2;
+
+    if (stream->buf.samples != NULL) {
+        offs = bcnt >= stream->bcnt ? bcnt - stream->bcnt : 0;
+
+        if (offs < stream->buf.buflen) {
+            len = stream->buf.buflen - offs;
+
+            TRACE("%s(): resetting %u bytes in write-ahead-buffer",
+                  __FUNCTION__, len);
+
+            memset((char *)stream->buf.samples + offs, 0, len);
+        }
     }
 }
 
@@ -411,6 +442,22 @@ static void underflow_callback(pa_stream *pastr, void *userdata)
         LOG_ERROR("Stream '%s' underflow", stream->name);
 
         stream->stat.underflows++;
+
+        stream_destroy(stream);
+    }
+}
+
+static void suspended_callback(pa_stream *pastr, void *userdata)
+{
+    (void)pastr;
+
+    struct stream *stream = (struct stream *)userdata;
+
+    if (!stream || !stream->name) 
+        LOG_ERROR("Stream suspended");
+    else {
+        LOG_ERROR("Stream '%s' suspended", stream->name);
+
     }
 }
 
@@ -421,6 +468,8 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
     const pa_buffer_attr *battr;
     int16_t              *samples;
     size_t                buflen;
+    int16_t              *extra;
+    size_t                extlen;
     struct timeval        tv;
     uint32_t              start;
     uint32_t              gap;
@@ -449,13 +498,40 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 #endif
 
     if (stream->buf.samples == NULL) {
-        samples = write_samples(stream, bytes, &cpu);
-        buflen  = bytes;
+        buflen  = (bytes + 1) & (~1U);
+        samples = (int16_t *)malloc(buflen);
+
+        if (samples != NULL)
+            write_samples(stream, samples,buflen, &cpu);
+        else {
+            LOG_ERROR("%s(): failed to allocate memory", __FUNCTION__);
+            return;
+        }
     }
     else {
-        samples = stream->buf.samples;
-        buflen  = stream->buf.buflen;
-        cpu     = stream->buf.cpu;
+        if (bytes <= stream->buf.buflen) {
+            buflen  = stream->buf.buflen;
+            samples = stream->buf.samples;
+            cpu     = stream->buf.cpu;
+        }
+        else {
+            buflen  = (bytes + 1) & (~1U);
+            samples = (int16_t *)realloc(stream->buf.samples, buflen);
+
+            extra  = samples + (stream->buf.buflen / 2);
+            extlen = buflen - stream->buf.buflen;
+
+            if (samples != NULL) {
+                TRACE("%s(): extending write-ahead-buffer %u butes (%u -> %u)",
+                      __FUNCTION__, extlen, stream->buf.buflen, buflen);
+                write_samples(stream, extra,extlen, &cpu);
+                cpu += stream->buf.cpu;
+            }
+            else {
+                LOG_ERROR("%s(): failed to allocate memory", __FUNCTION__);
+                return;
+            }
+        }
 
         stream->buf.samples = NULL;
         stream->buf.cpu = 0;
@@ -473,15 +549,13 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 
             stat->wrtime = calcend;
 
-            if (stat->bcnt == 0 /* && buflen > stream->bufsize */) {
+            if (stream->bcnt == 0 /* && buflen > stream->bufsize */) {
                 TRACE("Stream '%s' pre-buffers of %u bytes",
                       stream->name, buflen);
                 stat->firstwr = stat->wrtime;
-                stat->bcnt    = buflen;
             }
             else {
                 stat->wrcnt ++;
-                stat->bcnt += buflen;
                 stat->sumgap += gap;
                 stat->sumcalc += calc;
                 stat->cpucalc += cpu;
@@ -512,6 +586,13 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
 
         pa_stream_write(stream->pastr, (void*)samples,buflen, free,
                         0,PA_SEEK_RELATIVE);
+        stream->bcnt += buflen;
+
+
+#if 0
+        TRACE("stream time %09umsec end %09umsec",
+              stream->time / 1000, stream->end / 1000);
+#endif
 
         if (stream->end && stream->time >= stream->end)
             stream_destroy(stream);
@@ -522,9 +603,15 @@ static void write_callback(pa_stream *pastr, size_t bytes, void *userdata)
             }
 
             if (stream->bufsize != (uint32_t)-1) {
-                stream->buf.samples = write_samples(stream, stream->bufsize,
-                                                    &stream->buf.cpu);
+                stream->buf.samples = (int16_t *)malloc(stream->bufsize);
                 stream->buf.buflen  = stream->bufsize;
+
+                if (stream->buf.samples == NULL)
+                    LOG_ERROR("%s(): failed to allocate memory", __FUNCTION__);
+                else {
+                    write_samples(stream, stream->buf.samples,stream->bufsize,
+                                  &stream->buf.cpu);
+                }
             }
         }
     }
@@ -571,30 +658,24 @@ static void drain_callback(pa_stream *pastr, int success, void *userdata)
 }
 
 
-static int16_t *write_samples(struct stream *stream, size_t bytes, 
-                              uint32_t *cpu)
+static void write_samples(struct stream *stream, int16_t *samples,
+                          size_t bytes, uint32_t *cpu)
 {
-    int16_t  *samples;
     int       length;
     clock_t   cpubeg;
     clock_t   cpuend;
 
     length = bytes/2;
 
-    if ((samples = (int16_t *)malloc(length*2)) == NULL) {
-        LOG_ERROR("%s(): failed to allocate memory", __FUNCTION__);
-        return NULL;
-    }
-
     cpubeg = print_statistics ? clock() : 0;
 
-    stream->time = stream->write(stream->data, stream->time, samples, length);
+    stream->time = stream->write(stream, samples, length);
  
     cpuend = print_statistics ? clock() : 0;
 
     *cpu = cpuend - cpubeg;
 
-    return samples;
+    return;
 }
 
 

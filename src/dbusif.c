@@ -178,8 +178,10 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
         sig  = dbus_message_get_signature(msg);
         ser  = dbus_message_get_serial(msg);
 
+#if 0
         TRACE("%s(): message no #%u received: '%s', '%s', '%s'",
               __FUNCTION__, ser, intf, memb, sig);
+#endif
         
         key = create_key((gchar *)memb, (gchar *)sig, (gchar *)intf);
         method = g_hash_table_lookup(dbusif->hash, key);
@@ -206,8 +208,10 @@ static DBusHandlerResult handle_message(DBusConnection *conn,
         
         if (!dbus_connection_send(dbusif->conn, reply, NULL))
             LOG_ERROR("%s(): D-Bus message reply failure", __FUNCTION__);
+#if 0
         else
             TRACE("%s(): message no #%u replied", __FUNCTION__, ser);
+#endif
 
         dbus_message_unref(reply);
     }
