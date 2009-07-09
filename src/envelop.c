@@ -60,6 +60,18 @@ static inline union envelop *ramp_create(int type, uint32_t length,
     return envelop;
 }
 
+static inline void ramp_update(union envelop *envelop, uint32_t length,
+                               uint32_t end)
+{
+    struct envelop_ramp_def *down = &envelop->ramp.down;
+
+    down->k1    = 100;
+    down->k2    = length / down->k1;
+    down->start = end - length;
+    down->end   = end;
+}
+
+
 static inline void ramp_destroy(union envelop *envelop)
 {
     (void) envelop;
@@ -110,6 +122,21 @@ union envelop *envelop_create(int type, uint32_t length,
 
 
     return env;
+}
+
+void envelop_update(union envelop *envelop, uint32_t length, uint32_t end)
+{
+    if (envelop != NULL) {
+        switch (envelop->type) {
+
+        case ENVELOP_RAMP_LINEAR:
+            ramp_update(envelop, length, end);
+            break;
+
+        deafult:
+            break;
+        }
+    }
 }
 
 void envelop_destroy(union envelop *envelop)

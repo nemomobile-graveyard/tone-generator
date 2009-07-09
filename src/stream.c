@@ -341,13 +341,18 @@ void stream_clean_buffer(struct stream *stream)
     struct timeval  tv;
     uint64_t        now;
     uint32_t        bcnt;
+    uint32_t        dcnt;
     size_t          offs;
     size_t          len;
+    int             i,j;
+    int32_t         sample;
 
     gettimeofday(&tv, NULL);
     now  = (uint64_t)tv.tv_sec * (uint64_t)1000000 + (uint64_t)tv.tv_usec;
     bcnt = ((now - stream->start) * (uint64_t)stream->rate) / 1000000ULL;
     bcnt *= 2;
+
+    dcnt = (10000ULL * (uint64_t)stream->rate) / 1000000ULL;
 
     if (stream->buf.samples != NULL) {
         offs = bcnt >= stream->bcnt ? bcnt - stream->bcnt : 0;
@@ -355,10 +360,33 @@ void stream_clean_buffer(struct stream *stream)
         if (offs < stream->buf.buflen) {
             len = stream->buf.buflen - offs;
 
-            TRACE("%s(): resetting %u bytes in write-ahead-buffer",
-                  __FUNCTION__, len);
+            if (len < dcnt * 2) {
+                TRACE("%s(): resetting %u bytes in write-ahead-buffer",
+                      __FUNCTION__, len);
+                memset((char *)stream->buf.samples + offs, 0, len);
+            }
+            else {
+                for (i = 0, j = offs / 2;  i < dcnt;  i++, j++) {
+                    sample = stream->buf.samples[j];
+                    sample = (sample * ((int32_t)dcnt - i-1)) / (int32_t)dcnt;
 
-            memset((char *)stream->buf.samples + offs, 0, len);
+                    if (sample > 32767)
+                        stream->buf.samples[j] = 32767;
+                    else if (sample < -32767)
+                        stream->buf.samples[j] = -32767;
+                    else
+                        stream->buf.samples[j] = sample;
+                }
+
+                len  -= dcnt * 2;
+                offs += dcnt * 2;
+
+                TRACE("%s(): ramping down %u and resetting %u bytes in "
+                      "write-ahead-buffer", __FUNCTION__, dcnt * 2, len);
+
+                if (len > 0)
+                    memset((char *)stream->buf.samples + offs, 0, len);
+            }
         }
     }
 }

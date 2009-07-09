@@ -31,6 +31,7 @@ union envelop {
 
 int envelop_init(int, char **);
 union envelop *envelop_create(int, uint32_t, uint32_t, uint32_t);
+void envelop_update(union envelop *, uint32_t, uint32_t);
 void envelop_destroy(union envelop *);
 int32_t envelop_apply(union envelop *, int32_t, uint32_t);
 
