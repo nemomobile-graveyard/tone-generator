@@ -1,3 +1,9 @@
+tone-generator (0.1.2) unstable; urgency=low
+
+  * coverity fixes
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Fri, 31 Jul 2009 14:00:00 +0300
+
 tone-generator (0.1.1) unstable; urgency=low
 
   * Lingering DTMF tones

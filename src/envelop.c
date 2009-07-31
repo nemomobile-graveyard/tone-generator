@@ -154,7 +154,7 @@ void envelop_destroy(union envelop *envelop)
 
 int32_t envelop_apply(union envelop *envelop, int32_t in, uint32_t t)
 {
-    uint32_t out;
+    uint32_t out = in;
 
     if (envelop != NULL) {
         switch (envelop->type) {
