@@ -42,6 +42,7 @@ static enum tone_type tone_type;
 
 static struct method  method_defs[] = {
     {NULL, "StartEventTone", "uiu", start_event_tone},
+    {NULL, "StartNotificationTone", "uiu", start_event_tone}, /* backward compatible */
     {NULL, "StopTone", "", stop_tone},
     {NULL, NULL, NULL, NULL}
 };
