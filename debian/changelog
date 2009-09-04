@@ -1,3 +1,9 @@
+tone-generator (0.1.4) unstable; urgency=low
+
+  * Support for stream-specific properties, separate stream for DTMF tones.
+
+ -- Krisztian Litkey <krisztian.litkey@nokia.com>  Fri, 04 Sep 2009 21:03:05 +0300
+
 tone-generator (0.1.3) unstable; urgency=low
 
   * Add support for StartNotificationtone D-Bus call. (Fixes: NB#130196)
