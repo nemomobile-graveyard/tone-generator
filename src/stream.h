@@ -8,9 +8,12 @@
 #include <pulse/pulseaudio.h>
 
 #define STREAM_INDICATOR    "indtone"
-#define STREAM_DTMF         "indtone"
+#define STREAM_DTMF         "dtmf"
 #define STREAM_NOTES        "ringtone"
 #define STREAM_NOTIFICATION "notiftone"
+
+#define RESTORE_PROP_NAME   "module-stream-restore.id"
+#define KEYPRESS_ID         "x-maemo-key-pressed"
 
 struct ausrv;
 

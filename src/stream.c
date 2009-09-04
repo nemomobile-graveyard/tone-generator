@@ -27,6 +27,7 @@ static void write_callback(pa_stream *, size_t, void *);
 static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
 static void write_samples(struct stream *, int16_t *,size_t, uint32_t *);
+static pa_proplist *default_properties(const char *);
 
 static uint32_t default_rate     = 48000;
 static int      print_statistics = 0;
@@ -89,7 +90,8 @@ struct stream *stream_create(struct ausrv *ausrv,
     uint32_t            tlength;
     char                tlstr[32];
     char                bfstr[32];
- 
+    pa_proplist        *proplist;
+
     if (!ausrv->connected) {
         LOG_ERROR("Can't create stream '%s': no server connected", name);
         return NULL;
@@ -126,12 +128,15 @@ struct stream *stream_create(struct ausrv *ausrv,
     }
     memset(stream, 0, sizeof(*stream));
 
+    proplist = default_properties(name);
+
     stream->next    = ausrv->streams;
     stream->ausrv   = ausrv;
     stream->id      = ausrv->nextid++;
     stream->name    = strdup(name);
     stream->rate    = sample_rate;
-    stream->pastr   = pa_stream_new(ausrv->context, name, &spec, NULL);
+    stream->pastr   = pa_stream_new_with_proplist(ausrv->context, name,
+                                                  &spec, NULL, proplist);
     stream->start   = start;
     stream->flush   = TRUE;
     stream->bufsize = bufsize;
@@ -704,6 +709,21 @@ static void write_samples(struct stream *stream, int16_t *samples,
     *cpu = cpuend - cpubeg;
 
     return;
+}
+
+
+static pa_proplist *default_properties(const char *name)
+{
+    pa_proplist *pl;
+
+    if (!strcmp(name, STREAM_DTMF)) {
+        if ((pl = pa_proplist_new()) != NULL)
+            pa_proplist_sets(pl, RESTORE_PROP_NAME, KEYPRESS_ID);
+    }
+    else
+        pl = NULL;
+
+    return pl;
 }
 
 
