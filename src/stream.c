@@ -144,6 +144,9 @@ struct stream *stream_create(struct ausrv *ausrv,
     stream->destroy = destroy;
     stream->data    = data;
 
+    if (proplist != NULL)
+        pa_proplist_free(proplist);
+
     if (print_statistics) {
         stat = &stream->stat;
         stat->wrtime  = start;
