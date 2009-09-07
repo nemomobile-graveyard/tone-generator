@@ -81,7 +81,8 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
 
     if (stream != NULL) {
         if (!dur) {
-            indicator_stop(ausrv, PRESERVE_STREAM);
+            indicator_stop(ausrv, KILL_STREAM);
+            dtmf_stop(ausrv);
         }
     }
     else {

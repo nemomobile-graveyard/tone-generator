@@ -37,8 +37,10 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
     struct stream *stream  = stream_find(ausrv, ind_stream);
     uint32_t       timeout = dur ? dur : MAX_TONE_LENGTH;
     
-    if (stream != NULL) 
+    if (stream != NULL) {
+        dtmf_stop(ausrv);
         indicator_stop(ausrv, PRESERVE_STREAM);
+    }
     else {
         stream = stream_create(ausrv, ind_stream, NULL, 0,
                                tone_write_callback,
@@ -196,7 +198,7 @@ void indicator_stop(struct ausrv *ausrv, int kill_stream)
           kill_stream ? "true":"false", stream ? stream->name:"<no-stream>");
     
     if (stream != NULL) {
-        if (kill_stream)
+        if (kill_stream) 
             stream_destroy(stream);
         else {
             /* destroy all but DTMF tones */
