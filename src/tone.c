@@ -26,7 +26,7 @@
 
 #define TRACE(f, args...) trace_write(trctx, trflags, trkeys, f, ##args)
 
-#define AMPLITUDE 32767
+#define AMPLITUDE SHRT_MAX /* 32767 */
 #define OFFSET    8192
 #define SCALE     1024ULL
 
@@ -230,11 +230,19 @@ uint32_t tone_write_callback(struct stream *stream, int16_t *buf, int len)
                     }
                 }
             } /* for */
+
+
+#if 0
+            if (sample < SHRT_MIN || sample > SHRT_MAX) {
+                TRACE("sample %d is out of range (%d - %d)",
+                      sample, SHRT_MIN, SHRT_MAX);
+            }
+#endif
             
-            if (sample > 32767)
-                buf[i] = 32767;
-            else if (sample < -32767)
-                buf[i] = -32767;
+            if (sample > SHRT_MAX)
+                buf[i] = SHRT_MAX;
+            else if (sample < SHRT_MIN)
+                buf[i] = SHRT_MIN;
             else
                 buf[i] = sample;
             

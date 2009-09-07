@@ -103,7 +103,7 @@ void interact_destroy(struct interact *interact)
 static gboolean handle_input(GIOChannel *ch, GIOCondition cond, gpointer data)
 {
 #define PRINT(f, args...)  printf(f "\n", ##args)
-#define TONE(t)            indicator_play(ausrv, t, 100, 0)
+#define TONE(t)            indicator_play(ausrv, t, 95, 0)
 #define STOP               indicator_stop(ausrv, KILL_STREAM)
 #define STANDARD(s)        indicator_set_standard(STD_##s)
 #define DTMF(t)            dtmf_play(ausrv, DTMF_##t, 100, 300000)
