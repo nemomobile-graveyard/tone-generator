@@ -46,6 +46,7 @@ static struct dtmf dtmf_defs[DTMF_MAX] = {
 };
 static char *dtmf_stream = STREAM_DTMF;
 static void *dtmf_props  = NULL;
+static int   vol_scale = 100;
 
 int dtmf_init(int argc, char **argv)
 {
@@ -98,6 +99,8 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
         }
     }
 
+    vol = (vol_scale * vol) / 100;
+
     tone_create(stream, type_l, dtmf->low_freq , vol/2, per,play, 0,dur);
     tone_create(stream, type_h, dtmf->high_freq, vol/2, per,play, 0,dur);
 
@@ -145,6 +148,12 @@ void dtmf_stop(struct ausrv *ausrv)
 void dtmf_set_properties(char *propstring)
 {
     dtmf_props = stream_parse_properties(propstring);
+}
+
+
+void dtmf_set_volume(uint32_t volume)
+{
+    vol_scale = volume;
 }
 
 /*

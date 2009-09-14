@@ -20,9 +20,10 @@
 
 #define TRACE(f, args...) trace_write(trctx, trflags, trkeys, f, ##args)
 
-static char *ind_stream = STREAM_INDICATOR;
-static int   standard   = STD_CEPT;
-static void *ind_props  = NULL;
+static char     *ind_stream = STREAM_INDICATOR;
+static int       standard   = STD_CEPT;
+static void     *ind_props  = NULL;
+static uint32_t  vol_scale  = 100;
 
 int indicator_init(int argc, char **argv)
 {
@@ -54,6 +55,8 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
             return;
         }
     }
+
+    vol = (vol_scale * vol) / 100;
     
     switch (type) {
         
@@ -225,6 +228,10 @@ void indicator_set_properties(char *propstring)
     ind_props = stream_parse_properties(propstring);
 }
 
+void indicator_set_volume(uint32_t volume)
+{
+    vol_scale = volume;
+}
 
 
 /*
