@@ -719,13 +719,15 @@ static pa_proplist *default_properties(const char *name)
 {
     pa_proplist *pl;
 
-    if (!strcmp(name, STREAM_DTMF)) {
-        if ((pl = pa_proplist_new()) != NULL)
-            pa_proplist_sets(pl, RESTORE_PROP_NAME, KEYPRESS_ID);
+    if ((pl = pa_proplist_new()) != NULL) {
+        if (!strcmp(name, STREAM_DTMF))
+            pa_proplist_sets(pl, PROP_STREAM_RESTORE, ID_KEYPRESS);
+        else {
+            pa_proplist_sets(pl, PROP_MEDIA_ROLE, ID_PHONE);
+            pa_proplist_sets(pl, PROP_STREAM_RESTORE, INPUT_BY_ROLE":"ID_PHONE);
+        }
     }
-    else
-        pl = NULL;
-
+    
     return pl;
 }
 

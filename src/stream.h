@@ -12,8 +12,11 @@
 #define STREAM_NOTES        "ringtone"
 #define STREAM_NOTIFICATION "notiftone"
 
-#define RESTORE_PROP_NAME   "module-stream-restore.id"
-#define KEYPRESS_ID         "x-maemo-key-pressed"
+#define PROP_STREAM_RESTORE "module-stream-restore.id"
+#define PROP_MEDIA_ROLE     "media.role"
+#define ID_KEYPRESS         "x-maemo-key-pressed"
+#define ID_PHONE            "phone"
+#define INPUT_BY_ROLE       "sink-input-by-media-role"
 
 struct ausrv;
 
