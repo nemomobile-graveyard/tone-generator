@@ -53,7 +53,12 @@ script
 
 	echo "Signalling standard = $std"
 
-        exec /usr/bin/tonegend $signal_option -b 100 -r 20 > /dev/null
+        dtmf_props="module-stream-restore.id=x-maemo-key-pressed"
+        ind_props="media.role=phone,module-stream-restore.id=sink-input-by-media-role:phone"
+        notif_props="media.role=phone,module-stream-restore.id=sink-input-by-media-role:phone"
+
+        exec /usr/bin/tonegend $signal_option -b 100 -r 20 \
+             -D $dtmf_props -I $ind_props -N $notif_props > /dev/null
 end script
 
 respawn
