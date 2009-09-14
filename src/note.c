@@ -73,6 +73,7 @@ void note_play(struct ausrv *ausrv, int note, int scale, int beat,
         stream = stream_create(ausrv, note_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
+                               NULL,
                                NULL);
 
         if (stream == NULL) {

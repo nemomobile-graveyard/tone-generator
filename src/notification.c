@@ -41,6 +41,8 @@ static struct method  method_defs[] = {
     {NULL, NULL, NULL, NULL}
 };
 
+static void *notif_props = NULL;
+
 int notif_init(int argc, char **argv)
 {
     (void)argc;
@@ -158,6 +160,7 @@ static void notif_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         stream = stream_create(ausrv, notif_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
+                               notif_props,
                                NULL);
 
         if (stream == NULL) {
@@ -228,6 +231,11 @@ static void notif_stop(struct ausrv *ausrv, int kill_stream)
     }
 }
 
+
+void notif_set_properties(char *propstring)
+{
+    notif_props = stream_parse_properties(propstring);
+}
 
 
 /*

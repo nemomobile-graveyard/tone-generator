@@ -22,6 +22,7 @@
 
 static char *ind_stream = STREAM_INDICATOR;
 static int   standard   = STD_CEPT;
+static void *ind_props  = NULL;
 
 int indicator_init(int argc, char **argv)
 {
@@ -45,6 +46,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         stream = stream_create(ausrv, ind_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
+                               ind_props,
                                NULL);
 
         if (stream == NULL) {
@@ -218,6 +220,10 @@ void indicator_set_standard(int std)
         standard = std;
 }
 
+void indicator_set_properties(char *propstring)
+{
+    ind_props = stream_parse_properties(propstring);
+}
 
 
 

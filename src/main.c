@@ -49,6 +49,9 @@ struct cmdopt {
     int     statistics;
     int     buflen;
     int     minreq;
+    char   *dtmf_tags;
+    char   *notif_tags;
+    char   *ind_tags;
 };
 
 
@@ -76,6 +79,9 @@ int main(int argc, char **argv)
     cmdopt.statistics = 0;
     cmdopt.buflen = 0;
     cmdopt.minreq = 0;
+    cmdopt.dtmf_tags = NULL;
+    cmdopt.notif_tags = NULL;
+    cmdopt.ind_tags = NULL;
     
     parse_options(argc, argv, &cmdopt);
 
@@ -112,6 +118,10 @@ int main(int argc, char **argv)
     stream_print_statistics(cmdopt.statistics);
     stream_buffering_parameters(cmdopt.buflen, cmdopt.minreq);
 
+    dtmf_set_properties(cmdopt.dtmf_tags);
+    notif_set_properties(cmdopt.notif_tags);
+    indicator_set_properties(cmdopt.ind_tags);
+    
     if (cmdopt.daemon)
         daemonize(cmdopt.uid, cmdopt.path);
 
@@ -172,7 +182,8 @@ static void usage(int argc, char **argv, int exit_code)
     (void)argc;
 
     printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}] "
-           "[-b buflen_in_ms] [-r min_req_time_in_ms] [-i] [-8] [-S]\n",
+           "[-b buflen_in_ms] [-r min_req_time_in_ms] [-i] [-8] [-S]"
+           "[-D dtmf_tags] [-I indicator_tags] [-N notification_tags]\n",
            basename(argv[0]));
     exit(exit_code);
 }
@@ -180,12 +191,30 @@ static void usage(int argc, char **argv, int exit_code)
 
 static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 {
+    struct option options[] = {
+        { "help"         , no_argument      , NULL, 'h' },
+        { "daemon"       , no_argument      , NULL, 'd' },
+        { "interactive"  , no_argument      , NULL, 'i' },
+        { "8kHz"         , no_argument      , NULL, '8' },
+        { "user"         , required_argument, NULL, 'u' },
+        { "standard"     , required_argument, NULL, 's' },
+        { "buflen"       , required_argument, NULL, 'b' },
+        { "minreq"       , required_argument, NULL, 'r' },
+        { "statistics"   , no_argument      , NULL, 'S' },
+        { "tag-dtmf"     , required_argument, NULL, 'D' },
+        { "tag-indicator", required_argument, NULL, 'I' },
+        { "tag-notif"    , required_argument, NULL, 'N' },
+        
+#define OPTS "du:s:b:r:hi8SD:I:N:"
+        { NULL           , 0                , NULL,  0  }
+    };
+    
     int option;
     struct passwd *pwd;
     long int t;
     char *e;
 
-    while ((option = getopt(argc, argv, "du:s:b:r:hi8S")) != -1) {
+    while ((option = getopt_long(argc, argv, OPTS, options, NULL)) != -1) {
         switch (option) {
 
         case 'h':
@@ -262,6 +291,18 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
             cmdopt->statistics = 1;
             break;
 
+        case 'D':
+            cmdopt->dtmf_tags = optarg;
+            break;
+            
+        case 'I':
+            cmdopt->ind_tags = optarg;
+            break;
+
+        case 'N':
+            cmdopt->notif_tags = optarg;
+            break;
+            
         default:
             usage(argc, argv, EINVAL);
             break;

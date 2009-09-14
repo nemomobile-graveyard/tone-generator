@@ -27,7 +27,6 @@ static void write_callback(pa_stream *, size_t, void *);
 static void flush_callback(pa_stream *, int, void *);
 static void drain_callback(pa_stream *, int, void *);
 static void write_samples(struct stream *, int16_t *,size_t, uint32_t *);
-static pa_proplist *default_properties(const char *);
 
 static uint32_t default_rate     = 48000;
 static int      print_statistics = 0;
@@ -76,7 +75,8 @@ struct stream *stream_create(struct ausrv *ausrv,
                              char         *sink,
                              uint32_t      sample_rate,
                              uint32_t    (*write)(struct stream*,int16_t*,int),
-                             void        (*destroy)(void*), 
+                             void        (*destroy)(void*),
+                             void         *proplist,
                              void         *data)
 {
     struct stream      *stream;
@@ -90,7 +90,6 @@ struct stream *stream_create(struct ausrv *ausrv,
     uint32_t            tlength;
     char                tlstr[32];
     char                bfstr[32];
-    pa_proplist        *proplist;
 
     if (!ausrv->connected) {
         LOG_ERROR("Can't create stream '%s': no server connected", name);
@@ -128,24 +127,20 @@ struct stream *stream_create(struct ausrv *ausrv,
     }
     memset(stream, 0, sizeof(*stream));
 
-    proplist = default_properties(name);
-
     stream->next    = ausrv->streams;
     stream->ausrv   = ausrv;
     stream->id      = ausrv->nextid++;
     stream->name    = strdup(name);
     stream->rate    = sample_rate;
     stream->pastr   = pa_stream_new_with_proplist(ausrv->context, name,
-                                                  &spec, NULL, proplist);
+                                                  &spec, NULL,
+                                                  (pa_proplist *)proplist);
     stream->start   = start;
     stream->flush   = TRUE;
     stream->bufsize = bufsize;
     stream->write   = write;
     stream->destroy = destroy;
     stream->data    = data;
-
-    if (proplist != NULL)
-        pa_proplist_free(proplist);
 
     if (print_statistics) {
         stat = &stream->stat;
@@ -409,6 +404,65 @@ struct stream *stream_find(struct ausrv *ausrv, char *name)
     }
 
     return stream;
+}
+
+
+void *stream_parse_properties(char *propstring)
+{
+    pa_proplist *proplist;
+    char        *key, *val, *next, keybuf[128];
+    int          keylen, vallen;
+
+    if (propstring == NULL)
+        return NULL;
+
+    if ((proplist = pa_proplist_new()) == NULL) {
+        LOG_ERROR("%s(): Failed to allocate property list", __FUNCTION__);
+        return NULL;
+    }
+
+    key = propstring;
+    while (key != NULL) {
+        if ((val = strchr(key, '=')) == NULL) {
+            LOG_ERROR("%s(): Invalid property string '%s'", __FUNCTION__,
+                      propstring);
+            goto error;
+        }
+
+        keylen = val - key;
+        if (keylen >= (int)sizeof(keybuf)) {
+            LOG_ERROR("%s(): property key '%*.*s' too long", __FUNCTION__,
+                      keylen, keylen, key);
+            goto error;
+        }
+        strncpy(keybuf, key, keylen);
+        keybuf[keylen] = '\0';
+
+        val++;
+        if ((next = strchr(val, ',')) != NULL) {
+            vallen = next - val;
+            next++;
+        }
+        else
+            vallen = strlen(val);
+
+        pa_proplist_setf(proplist, keybuf, "%*.*s", vallen, vallen, val);
+
+        key = next;
+    }
+
+    return (void *)proplist;
+    
+ error:
+    pa_proplist_free(proplist);
+    return NULL;
+}
+
+
+void stream_free_properties(void *proplist)
+{
+    if (proplist)
+        pa_proplist_free((pa_proplist *)proplist);
 }
 
 static void state_callback(pa_stream *pastr, void *userdata)
@@ -712,23 +766,6 @@ static void write_samples(struct stream *stream, int16_t *samples,
     *cpu = cpuend - cpubeg;
 
     return;
-}
-
-
-static pa_proplist *default_properties(const char *name)
-{
-    pa_proplist *pl;
-
-    if ((pl = pa_proplist_new()) != NULL) {
-        if (!strcmp(name, STREAM_DTMF))
-            pa_proplist_sets(pl, PROP_STREAM_RESTORE, ID_KEYPRESS);
-        else {
-            pa_proplist_sets(pl, PROP_MEDIA_ROLE, ID_PHONE);
-            pa_proplist_sets(pl, PROP_STREAM_RESTORE, INPUT_BY_ROLE":"ID_PHONE);
-        }
-    }
-    
-    return pl;
 }
 
 

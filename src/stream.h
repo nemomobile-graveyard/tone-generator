@@ -68,12 +68,14 @@ void stream_print_statistics(int);
 void stream_buffering_parameters(int, int);
 struct stream *stream_create(struct ausrv *, char *, char *, uint32_t,
                              uint32_t (*)(struct stream *, int16_t*, int),
-                             void (*)(void*), void *);
+                             void (*)(void*), void *, void *);
 void stream_destroy(struct stream *);
 void stream_set_timeout(struct stream *, uint32_t);
 void stream_kill_all(struct ausrv *);
 void stream_clean_buffer(struct stream *);
 struct stream *stream_find(struct ausrv *, char *);
+void *stream_parse_properties(char *);
+void stream_free_properties(void *);
 
 
 #endif /* __TONEGEND_STREAM_H__ */

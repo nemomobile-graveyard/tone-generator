@@ -45,7 +45,7 @@ static struct dtmf dtmf_defs[DTMF_MAX] = {
     {'D', 941, 1633}
 };
 static char *dtmf_stream = STREAM_DTMF;
-
+static void *dtmf_props  = NULL;
 
 int dtmf_init(int argc, char **argv)
 {
@@ -89,6 +89,7 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
         stream = stream_create(ausrv, dtmf_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
+                               dtmf_props,
                                NULL);
 
         if (stream == NULL) {
@@ -140,6 +141,11 @@ void dtmf_stop(struct ausrv *ausrv)
     }
 }
 
+
+void dtmf_set_properties(char *propstring)
+{
+    dtmf_props = stream_parse_properties(propstring);
+}
 
 /*
  * Local Variables:
