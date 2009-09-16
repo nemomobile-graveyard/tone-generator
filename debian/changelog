@@ -1,6 +1,6 @@
 tone-generator (0.1.5) unstable; urgency=low
 
-  * Set indicator and notification tone volumes to 40%.
+  * Set indicator and notification tone volumes to 40% (Fixes: NB#118879).
   * Added support for stream-specific volume scaling from the command line.
   * Tag also non-DTMF tones with call volume control properties.
   * Replaced hardcoded stream properties with appropriate command line options.
