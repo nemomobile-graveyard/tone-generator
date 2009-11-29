@@ -7,6 +7,8 @@ struct tonegend;
 
 int notif_init(int, char **);
 int notif_create(struct tonegend *);
+void notif_set_properties(char *);
+void notif_set_volume(uint32_t);
 
 #endif /* __NOTFIFD_NOTIF_H__ */
 

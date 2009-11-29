@@ -22,7 +22,8 @@ int  indicator_init(int, char **);
 void indicator_play(struct ausrv *, int, uint32_t, int);
 void indicator_stop(struct ausrv *, int);
 void indicator_set_standard(int);
-
+void indicator_set_properties(char *);
+void indicator_set_volume(uint32_t);
 
 #endif /* __TONEGEND_INDICATOR_H__ */
 

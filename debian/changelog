@@ -1,9 +1,18 @@
-tone-generator (0.1.5) unstable; urgency=low
+tone-generator (0.1.6) unstable; urgency=low
 
   * Tear down the stream even if flush/drain fails
     (potentialy Fixes: NB#142539)
 
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Sun, 29 Nov 2009 16:05:00 +0300
+
+tone-generator (0.1.5) unstable; urgency=low
+
+  * Set indicator and notification tone volumes to 40% (Fixes: NB#118879).
+  * Added support for stream-specific volume scaling from the command line.
+  * Tag also non-DTMF tones with call volume control properties.
+  * Replaced hardcoded stream properties with appropriate command line options.
+
+ -- Krisztian Litkey <krisztian.litkey@nokia.com>  Mon, 14 Sep 2009 18:34:40 +0300
 
 tone-generator (0.1.4) unstable; urgency=low
 

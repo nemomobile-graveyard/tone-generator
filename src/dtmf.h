@@ -28,6 +28,8 @@
 int  dtmf_init(int, char **);
 void dtmf_play(struct ausrv *, uint, uint32_t, int);
 void dtmf_stop(struct ausrv *);
+void dtmf_set_properties(char *);
+void dtmf_set_volume(uint32_t);
 
 #endif /* __TONEGEND_DTMF_H__ */
 

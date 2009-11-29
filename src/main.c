@@ -40,15 +40,21 @@
 #define TRACE(f, args...) trace_write(trctx, trflags, trkeys, f, ##args)
 
 struct cmdopt {
-    int     daemon;             /*  */
-    int     uid;
-    char   *path;
-    int     standard;
-    int     interactive;
-    int     sample_rate;
-    int     statistics;
-    int     buflen;
-    int     minreq;
+    int       daemon;             /*  */
+    int       uid;
+    char     *path;
+    int       standard;
+    int       interactive;
+    int       sample_rate;
+    int       statistics;
+    int       buflen;
+    int       minreq;
+    char     *dtmf_tags;
+    char     *notif_tags;
+    char     *ind_tags;
+    uint32_t  dtmf_volume;
+    uint32_t  notif_volume;
+    uint32_t  ind_volume;
 };
 
 
@@ -76,6 +82,12 @@ int main(int argc, char **argv)
     cmdopt.statistics = 0;
     cmdopt.buflen = 0;
     cmdopt.minreq = 0;
+    cmdopt.dtmf_tags = NULL;
+    cmdopt.ind_tags = NULL;
+    cmdopt.notif_tags = NULL;
+    cmdopt.dtmf_volume = 100;
+    cmdopt.ind_volume = 100;
+    cmdopt.notif_volume = 100;
     
     parse_options(argc, argv, &cmdopt);
 
@@ -111,6 +123,14 @@ int main(int argc, char **argv)
     stream_set_default_samplerate(cmdopt.sample_rate);
     stream_print_statistics(cmdopt.statistics);
     stream_buffering_parameters(cmdopt.buflen, cmdopt.minreq);
+
+    dtmf_set_properties(cmdopt.dtmf_tags);
+    indicator_set_properties(cmdopt.ind_tags);
+    notif_set_properties(cmdopt.notif_tags);
+
+    dtmf_set_volume(cmdopt.dtmf_volume);
+    indicator_set_volume(cmdopt.ind_volume);
+    notif_set_volume(cmdopt.notif_volume);
 
     if (cmdopt.daemon)
         daemonize(cmdopt.uid, cmdopt.path);
@@ -172,20 +192,60 @@ static void usage(int argc, char **argv, int exit_code)
     (void)argc;
 
     printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}] "
-           "[-b buflen_in_ms] [-r min_req_time_in_ms] [-i] [-8] [-S]\n",
+           "[-b buflen_in_ms] [-r min_req_time_in_ms] [-i] [-8] [-S] "
+           "[--tag-dtmf tags] [--tag-indicator tags] [--tag-notif tags] "
+           "[--volume-dtmf volume] [--volume-indicator volume] "
+           "[--volume-notif volume]"
+           "\n",
            basename(argv[0]));
     exit(exit_code);
 }
 
 
+static uint32_t parse_volume(char *volstr)
+{
+    char     *end;
+    uint32_t  vol;
+    
+    vol = strtoul(volstr, &end, 10);
+    
+    if (*end) {
+        LOG_ERROR("%s(): ignoring invalid volume '%s'", __FUNCTION__, volstr);
+        return (uint32_t)100;
+    }
+    
+    return vol;
+}
+
 static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 {
+    struct option options[] = {
+        { "help"            , no_argument      , NULL, 'h' },
+        { "daemon"          , no_argument      , NULL, 'd' },
+        { "interactive"     , no_argument      , NULL, 'i' },
+        { "8kHz"            , no_argument      , NULL, '8' },
+        { "user"            , required_argument, NULL, 'u' },
+        { "standard"        , required_argument, NULL, 's' },
+        { "buflen"          , required_argument, NULL, 'b' },
+        { "minreq"          , required_argument, NULL, 'r' },
+        { "statistics"      , no_argument      , NULL, 'S' },
+        { "tag-dtmf"        , required_argument, NULL, 'D' },
+        { "tag-indicator"   , required_argument, NULL, 'I' },
+        { "tag-notif"       , required_argument, NULL, 'N' },
+        { "volume-dtmf"     , required_argument, NULL, '1' },
+        { "volume-indicator", required_argument, NULL, '2' },
+        { "volume-notif"    , required_argument, NULL, '3' },
+        
+#define OPTS "du:s:b:r:hi8SD:I:N:"
+        { NULL           , 0                , NULL,  0  }
+    };
+    
     int option;
     struct passwd *pwd;
     long int t;
     char *e;
 
-    while ((option = getopt(argc, argv, "du:s:b:r:hi8S")) != -1) {
+    while ((option = getopt_long(argc, argv, OPTS, options, NULL)) != -1) {
         switch (option) {
 
         case 'h':
@@ -260,6 +320,30 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
 
         case 'S':
             cmdopt->statistics = 1;
+            break;
+
+        case 'D':
+            cmdopt->dtmf_tags = optarg;
+            break;
+
+        case 'I':
+            cmdopt->ind_tags = optarg;
+            break;
+
+        case 'N':
+            cmdopt->notif_tags = optarg;
+            break;
+
+        case '1':
+            cmdopt->dtmf_volume = parse_volume(optarg);
+            break;
+
+        case '2':
+            cmdopt->ind_volume = parse_volume(optarg);
+            break;
+
+        case '3':
+            cmdopt->notif_volume = parse_volume(optarg);
             break;
 
         default:

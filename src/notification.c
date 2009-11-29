@@ -41,6 +41,9 @@ static struct method  method_defs[] = {
     {NULL, NULL, NULL, NULL}
 };
 
+static void     *notif_props = NULL;
+static uint32_t  vol_scale   = 100;
+
 int notif_init(int argc, char **argv)
 {
     (void)argc;
@@ -93,6 +96,8 @@ static int start_notif_tone(DBusMessage *msg, struct tonegend *tonegend)
 
     volume = linear_volume(dbm0);
 
+    
+
     TRACE("%s(): event %u  volume %d dbm0 (%u) duration %u msec",
           __FUNCTION__, event, dbm0, volume, duration);
 
@@ -143,7 +148,7 @@ static uint32_t linear_volume(int dbm0)
 
     volume = pow(10.0, (double)(dbm0 + 63) / 20.0) / 14.125375446;
 
-    return (uint32_t)(volume + 0.5);
+    return (vol_scale * (uint32_t)(volume + 0.5)) / 100;
 }
 
 
@@ -158,6 +163,7 @@ static void notif_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         stream = stream_create(ausrv, notif_stream, NULL, 0,
                                tone_write_callback,
                                tone_destroy_callback,
+                               notif_props,
                                NULL);
 
         if (stream == NULL) {
@@ -228,6 +234,17 @@ static void notif_stop(struct ausrv *ausrv, int kill_stream)
     }
 }
 
+
+void notif_set_properties(char *propstring)
+{
+    notif_props = stream_parse_properties(propstring);
+}
+
+
+void notif_set_volume(uint32_t volume)
+{
+    vol_scale = volume;
+}
 
 
 /*
