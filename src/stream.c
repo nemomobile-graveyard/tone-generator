@@ -665,12 +665,11 @@ static void flush_callback(pa_stream *pastr, int success, void *userdata)
 
     if (!success)
         LOG_ERROR("%s(): Can't flush stream '%s'", __FUNCTION__, stream->name);
-    else {
-        pa_stream_unref(pastr);
-        pa_stream_disconnect(pastr);
-    }
+    else
+        TRACE("%s(): stream '%s' flushed", __FUNCTION__, stream->name);
 
-    TRACE("%s(): stream '%s' flushed", __FUNCTION__, stream->name);
+    pa_stream_unref(pastr);
+    pa_stream_disconnect(pastr);
 }
 
 
@@ -685,12 +684,11 @@ static void drain_callback(pa_stream *pastr, int success, void *userdata)
 
     if (!success)
         LOG_ERROR("%s(): Can't drain stream '%s'", __FUNCTION__, stream->name);
-    else {
-        pa_stream_unref(pastr);
-        pa_stream_disconnect(pastr);
-    }
+    else
+        TRACE("%s(): stream '%s' drained", __FUNCTION__, stream->name);
 
-    TRACE("%s(): stream '%s' drained", __FUNCTION__, stream->name);
+    pa_stream_unref(pastr);
+    pa_stream_disconnect(pastr);
 }
 
 

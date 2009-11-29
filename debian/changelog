@@ -1,3 +1,10 @@
+tone-generator (0.1.5) unstable; urgency=low
+
+  * Tear down the stream even if flush/drain fails
+    (potentialy Fixes: NB#142539)
+
+ -- Janos Kovacs <janos.f.kovacs@nokia.com>  Sun, 29 Nov 2009 16:05:00 +0300
+
 tone-generator (0.1.4) unstable; urgency=low
 
   * Support for stream-specific properties, separate stream for DTMF tones.
