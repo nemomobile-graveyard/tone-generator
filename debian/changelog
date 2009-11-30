@@ -1,7 +1,7 @@
 tone-generator (0.1.6) unstable; urgency=low
 
   * Tear down the stream even if flush/drain fails
-    (potentialy Fixes: NB#142539)
+    (potentialy Fixes: NB#148030)
 
  -- Janos Kovacs <janos.f.kovacs@nokia.com>  Sun, 29 Nov 2009 16:05:00 +0300
 
