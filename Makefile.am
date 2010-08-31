@@ -7,13 +7,9 @@ MAINTAINERCLEANFILES = \
         build-stamp compile depcomp acinclude.m4 aclocal.m4 \
 	stamp-h1 
 
-EXTRA_DIST = \
-	debian/changelog \
-	debian/compat \
-	debian/control \
-	debian/copyright \
-	debian/rules
+EXTRA_DIST = $(dbus_DATA) tone-generator.yaml tone-generator.spec autogen.sh
+dbusdir = $(sysconfdir)/dbus-1/system.d
+dbus_DATA = tone-generator.conf
 
-clean-local:
-	dh_clean
-
+dist-hook:
+	cp -va $(top_srcdir)/src/*.h $(top_distdir)/src
