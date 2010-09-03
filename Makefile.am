@@ -7,7 +7,7 @@ MAINTAINERCLEANFILES = \
         build-stamp compile depcomp acinclude.m4 aclocal.m4 \
 	stamp-h1 
 
-EXTRA_DIST = $(dbus_DATA) tone-generator.yaml tone-generator.spec autogen.sh
+EXTRA_DIST = $(dbus_DATA) autogen.sh
 dbusdir = $(sysconfdir)/dbus-1/system.d
 dbus_DATA = tone-generator.conf
 
