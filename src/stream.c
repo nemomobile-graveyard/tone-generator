@@ -242,7 +242,10 @@ void stream_destroy(struct stream *stream)
     uint32_t              avcalc;
     uint32_t              avcpu;
     uint32_t              avgap;
-    
+
+    TRACE("%s(): destroying stream '%s'", __FUNCTION__, stream->name);
+
+
     if (stream->killed) {
         TRACE("%s(): stream is already killed", __FUNCTION__);
         return;
@@ -254,30 +257,31 @@ void stream_destroy(struct stream *stream)
 
     for (prev=(struct stream *)&ausrv->streams;  prev->next;  prev=prev->next){
         if (prev->next == stream) {
-            prev->next = stream->next;
-
-            stream->next   = NULL;
-            stream->ausrv  = NULL;
-            stream->killed = TRUE;
-
             pastr = stream->pastr;
             battr = pa_stream_get_buffer_attr(pastr);
             stat  = &stream->stat;
-
-            if (stream->destroy != NULL)
-                stream->destroy(stream->data);
-
-            free(stream->buf.samples);
-            
-            pa_stream_set_write_callback(pastr, NULL,NULL);
 
             if (stream->flush)
                 oper = pa_stream_flush(pastr, flush_callback, (void *)stream);
             else
                 oper = pa_stream_drain(pastr, drain_callback, (void *)stream);
 
-            if (oper != NULL)
-                pa_operation_unref(oper);
+            if (oper == NULL)
+                return;
+
+            pa_operation_unref(oper);
+
+            prev->next = stream->next;
+            stream->next   = NULL;
+            stream->ausrv  = NULL;
+            stream->killed = TRUE;
+
+            if (stream->destroy != NULL)
+                stream->destroy(stream->data);
+
+            free(stream->buf.samples);
+
+            pa_stream_set_write_callback(pastr, NULL,NULL);
 
             if (print_statistics && stat->wrcnt > 0) {
                 if (battr != NULL) {

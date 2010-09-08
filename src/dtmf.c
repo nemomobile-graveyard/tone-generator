@@ -25,6 +25,8 @@ USA.
 #include <string.h>
 #include <errno.h>
 
+#include <glib.h>
+
 #include <log/log.h>
 #include <trace/trace.h>
 
@@ -33,12 +35,16 @@ USA.
 #include "tone.h"
 #include "indicator.h"
 #include "dtmf.h"
+#include "dbusif.h"
 
 #define LOG_ERROR(f, args...) log_error(logctx, f, ##args)
 #define LOG_INFO(f, args...) log_error(logctx, f, ##args)
 #define LOG_WARNING(f, args...) log_error(logctx, f, ##args)
 
 #define TRACE(f, args...) trace_write(trctx, trflags, trkeys, f, ##args)
+
+#define MUTE_ON  1
+#define MUTE_OFF 0
 
 struct dtmf {
     char           symbol;
@@ -65,9 +71,20 @@ static struct dtmf dtmf_defs[DTMF_MAX] = {
     {'C', 852, 1633},
     {'D', 941, 1633}
 };
-static char *dtmf_stream = STREAM_DTMF;
-static void *dtmf_props  = NULL;
-static int   vol_scale = 100;
+
+static char   *dtmf_stream = STREAM_DTMF;
+static void   *dtmf_props  = NULL;
+static int     vol_scale   = 100;
+static int     mute        = MUTE_OFF;
+static guint   tmute_id;
+
+
+static void destroy_callback(void *);
+static void set_mute_timeout(struct ausrv *, guint);
+static gboolean mute_timeout_callback(gpointer);
+static void request_muting(struct ausrv *, dbus_bool_t);
+
+
 
 int dtmf_init(int argc, char **argv)
 {
@@ -110,7 +127,7 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
     else {
         stream = stream_create(ausrv, dtmf_stream, NULL, 0,
                                tone_write_callback,
-                               tone_destroy_callback,
+                               destroy_callback,
                                dtmf_props,
                                NULL);
 
@@ -128,6 +145,9 @@ void dtmf_play(struct ausrv *ausrv, uint type, uint32_t vol, int dur)
     timeout = dur ? dur + (30 * 1000000) : (1 * 60 * 1000000);
 
     stream_set_timeout(stream, timeout);
+
+    request_muting(ausrv, MUTE_ON);
+    set_mute_timeout(ausrv, 0);
 }
 
 void dtmf_stop(struct ausrv *ausrv)
@@ -162,6 +182,7 @@ void dtmf_stop(struct ausrv *ausrv)
             stream_clean_buffer(stream);
 
         stream_set_timeout(stream, 10 * 1000000);
+        set_mute_timeout(ausrv, 2 * 1000000);        
     }
 }
 
@@ -176,6 +197,78 @@ void dtmf_set_volume(uint32_t volume)
 {
     vol_scale = volume;
 }
+
+static void destroy_callback(void *data)
+{
+    struct tone   *tone = (struct tone *)data;
+    struct stream *stream;
+    struct ausrv  *ausrv;
+
+    set_mute_timeout(NULL, 0);
+
+    if (mute && tone != NULL) {
+        stream = tone->stream;
+        ausrv  = stream->ausrv;
+
+        request_muting(ausrv, MUTE_OFF);
+
+        mute = MUTE_OFF;
+    }
+
+    tone_destroy_callback(data);
+}
+
+static void set_mute_timeout(struct ausrv *ausrv, guint interval)
+{
+    if (interval)
+        TRACE("add %d usec mute timeout", interval);
+    else if (tmute_id)
+        TRACE("remove mute timeout");
+
+    if (tmute_id != 0) {
+        g_source_remove(tmute_id);
+        tmute_id = 0;
+    }
+
+    if (interval > 0 && ausrv != NULL) {
+        tmute_id = g_timeout_add(interval/1000, mute_timeout_callback, ausrv);
+    }
+}
+
+static gboolean mute_timeout_callback(gpointer data)
+{
+    struct ausrv *ausrv = (struct ausrv *)data;
+
+    TRACE("mute timeout fired");
+
+    request_muting(ausrv, MUTE_OFF);
+
+    tmute_id = 0;
+
+    return FALSE;
+}
+
+static void request_muting(struct ausrv *ausrv, dbus_bool_t new_mute)
+{
+    int sts;
+
+    new_mute = new_mute ? MUTE_ON : MUTE_OFF;
+
+    if (ausrv != NULL && mute != new_mute) {
+        sts = dbusif_send_signal(ausrv->tonegend, NULL, "Mute",
+                                 DBUS_TYPE_BOOLEAN, &new_mute,
+                                 DBUS_TYPE_INVALID);
+
+        if (sts != 0)
+            LOG_ERROR("failed to send mute signal");
+        else {
+            TRACE("sent signal to turn mute %s", new_mute ? "on" : "off");
+            mute = new_mute;
+        }
+    }
+}
+
+
 
 /*
  * Local Variables:

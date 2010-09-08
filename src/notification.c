@@ -80,8 +80,8 @@ int notif_create(struct tonegend *tonegend)
     int sts;
 
     for (m = method_defs, err = 0;    m->memb != NULL;    m++) {
-        sts = dbusif_register_method(tonegend, m->intf, m->memb,
-                                     m->sig, m->func);
+        sts = dbusif_register_input_method(tonegend, m->intf, m->memb,
+                                           m->sig, m->func);
 
         if (sts < 0) {
             LOG_ERROR("%s(): Can't register D-Bus method '%s'",
