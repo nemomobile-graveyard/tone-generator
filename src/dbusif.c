@@ -23,6 +23,7 @@ USA.
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <errno.h>
 
 #include <log/log.h>
@@ -137,9 +138,9 @@ void dbusif_destroy(struct dbusif *dbusif)
 }
 
 
-int dbusif_register_method(struct tonegend *tonegend,
-                           char *intf, char *memb, char *sig,
-                           int (*method)(DBusMessage *, struct tonegend *))
+int dbusif_register_input_method(struct tonegend *tonegend,
+                                 char *intf, char *memb, char *sig,
+                                 int (*method)(DBusMessage*, struct tonegend*))
 {
     struct dbusif *dbusif = tonegend->dbus_ctx;
     gchar         *key;
@@ -160,8 +161,8 @@ int dbusif_register_method(struct tonegend *tonegend,
 }
 
 
-int dbusif_unregister_method(struct tonegend *tonegend, char *intf,
-                             char *memb, char *sign)
+int dbusif_unregister_input_method(struct tonegend *tonegend, char *intf,
+                                   char *memb, char *sign)
 {
     (void)tonegend;
     (void)intf;
@@ -169,6 +170,46 @@ int dbusif_unregister_method(struct tonegend *tonegend, char *intf,
     (void)sign;
 
     return 0;
+}
+
+int dbusif_send_signal(struct tonegend *tonegend, char *intf, char *name,
+                       int first_arg_type, ...)
+{
+    struct dbusif *dbusif = tonegend->dbus_ctx;
+    DBusMessage   *msg;
+    va_list        ap;
+    int            success;
+    
+    do { /* not a loop */
+        success = FALSE;
+
+        if (name == NULL) {
+            LOG_ERROR("%s(): Called with invalid argument", __FUNCTION__);
+            errno   = EINVAL;
+            break;
+        }
+
+        if (intf == NULL)
+            intf = service;
+
+        if ((msg = dbus_message_new_signal(path, intf, name)) == NULL) {
+            errno = ENOMEM;
+            break;
+        }
+
+        va_start(ap, first_arg_type);
+
+        if (dbus_message_append_args_valist(msg, first_arg_type, ap)) {
+            success = dbus_connection_send(dbusif->conn, msg, NULL);
+        }
+
+        va_end(ap);
+
+        dbus_message_unref(msg);
+
+    } while(FALSE);
+
+    return success ? 0 : -1;
 }
 
 
