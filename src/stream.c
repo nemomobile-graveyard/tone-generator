@@ -273,11 +273,12 @@ void stream_destroy(struct stream *stream)
 
             prev->next = stream->next;
             stream->next   = NULL;
-            stream->ausrv  = NULL;
             stream->killed = TRUE;
 
             if (stream->destroy != NULL)
                 stream->destroy(stream->data);
+
+            stream->ausrv  = NULL;
 
             free(stream->buf.samples);
 
@@ -348,11 +349,12 @@ void stream_kill_all(struct ausrv *ausrv)
         ausrv->streams = stream->next;
 
         stream->next   = NULL;
-        stream->ausrv  = NULL;
         stream->killed = TRUE;
 
         if (stream->destroy != NULL)
             stream->destroy(stream->data);
+
+        stream->ausrv  = NULL;
 
         pa_stream_set_state_callback(stream->pastr, NULL,NULL);
         pa_stream_set_underflow_callback(stream->pastr, NULL,NULL);
