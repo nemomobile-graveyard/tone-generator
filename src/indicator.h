@@ -35,7 +35,8 @@ USA.
 #define STD_CEPT           1
 #define STD_ANSI           2
 #define STD_JAPAN          3
-#define STD_MAX            4
+#define STD_ATNT           4
+#define STD_MAX            5
 
 
 

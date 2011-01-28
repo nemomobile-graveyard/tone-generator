@@ -212,7 +212,8 @@ static void usage(int argc, char **argv, int exit_code)
 {
     (void)argc;
 
-    printf("usage: %s [-h] [-d] [-u username] [-s {cept | ansi | japan}] "
+    printf("usage: %s [-h] [-d] [-u username] "
+           "[-s {cept | ansi | japan | atnt }] "
            "[-b buflen_in_ms] [-r min_req_time_in_ms] [-i] [-8] [-S] "
            "[--tag-dtmf tags] [--tag-indicator tags] [--tag-notif tags] "
            "[--volume-dtmf volume] [--volume-indicator volume] "
@@ -311,6 +312,8 @@ static void parse_options(int argc, char **argv, struct cmdopt *cmdopt)
                 cmdopt->standard = STD_ANSI;
             else if (!strcmp(optarg, "japan"))
                 cmdopt->standard = STD_JAPAN;
+            else if (!strcmp(optarg, "atnt"))
+                cmdopt->standard = STD_ATNT;
             else {
                 printf("invalid standard '%s'\n", optarg);
                 usage(argc, argv, EINVAL);
