@@ -124,7 +124,7 @@ static int start_notif_tone(DBusMessage *msg, struct tonegend *tonegend)
 
 
     switch (event) {
-    case 66:  beeptype = TONE_BUSY;      break;
+    case 66:  beeptype = TONE_DIAL;      break;
     case 72:  beeptype = TONE_BUSY;      break;
     case 73:  beeptype = TONE_CONGEST;   break;
     case 256: beeptype = TONE_RADIO_ACK; break;
