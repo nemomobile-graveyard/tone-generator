@@ -154,7 +154,7 @@ void envelop_update(union envelop *envelop, uint32_t length, uint32_t end)
             ramp_update(envelop, length, end);
             break;
 
-        deafult:
+        default:
             break;
         }
     }
