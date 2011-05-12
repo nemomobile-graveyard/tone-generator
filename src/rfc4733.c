@@ -51,6 +51,7 @@ struct method {
 
 static int start_event_tone(DBusMessage *, struct tonegend *);
 static int stop_tone(DBusMessage *, struct tonegend *);
+static int stop_event_tone(DBusMessage *, struct tonegend *);
 static uint32_t linear_volume(int);
 
 #define TONE_INDICATOR      0
@@ -62,6 +63,7 @@ static struct method  method_defs[] = {
     {NULL, "StartEventTone", "uiu", start_event_tone},
     {NULL, "StartNotificationTone", "uiu", start_event_tone}, /* backward compatible */
     {NULL, "StopTone", "", stop_tone},
+    {NULL, "StopEventTone", "u", stop_event_tone},
     {NULL, NULL, NULL, NULL}
 };
 
@@ -151,6 +153,34 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
 
         strncpy(tone_sender[TONE_INDICATOR], sender, DBUS_SENDER_MAXLEN);
         indicator_play(ausrv, indtype, volume, duration * 1000);
+    }
+
+    return TRUE;
+}
+
+static int stop_event_tone(DBusMessage *msg, struct tonegend *tonegend)
+{
+    struct ausrv *ausrv = tonegend->ausrv_ctx;
+    uint32_t      event;
+    int           success;
+
+    success = dbus_message_get_args(msg, NULL,
+                                    DBUS_TYPE_UINT32, &event,
+                                    DBUS_TYPE_INVALID);
+
+    if (!success) {
+        LOG_ERROR("%s(): Can't parse arguments", __FUNCTION__);
+        return FALSE;
+    }
+
+    TRACE("%s(): stop %d tone", __FUNCTION__, event);
+
+    if (event < DTMF_MAX) {
+        dtmf_stop(ausrv);
+        tone_sender[TONE_DTMF][0] = 0;
+    } else {
+        indicator_stop(ausrv, KILL_STREAM);
+        tone_sender[TONE_INDICATOR][0] = 0;
     }
 
     return TRUE;
