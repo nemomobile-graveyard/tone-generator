@@ -42,12 +42,6 @@ USA.
 
 #define TRACE(f, args...) trace_write(trctx, trflags, trkeys, f, ##args)
 
-enum tone_type {
-    tone_type_notone = 0,
-    tone_type_indicator,
-    tone_type_dtmf
-};
-
 struct method {
     char  *intf;                                    /* interface name */
     char  *memb;                                    /* method name */
@@ -58,8 +52,11 @@ struct method {
 static int start_event_tone(DBusMessage *, struct tonegend *);
 static int stop_tone(DBusMessage *, struct tonegend *);
 static uint32_t linear_volume(int);
-static enum tone_type tone_type;
 
+#define TONE_INDICATOR      0
+#define TONE_DTMF           1
+#define DBUS_SENDER_MAXLEN  16
+static char tone_sender[2][DBUS_SENDER_MAXLEN];
 
 static struct method  method_defs[] = {
     {NULL, "StartEventTone", "uiu", start_event_tone},
@@ -106,6 +103,7 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
     uint32_t      volume;
     int           indtype;
     int           success;
+    char         *sender;
 
     success = dbus_message_get_args(msg, NULL,
                                     DBUS_TYPE_UINT32, &event,
@@ -123,14 +121,14 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
     TRACE("%s(): event %u  volume %d dbm0 (%u) duration %u msec",
           __FUNCTION__, event, dbm0, volume, duration);
 
+    sender = (char *)dbus_message_get_sender(msg);
 
     if (event < DTMF_MAX) {
-        tone_type = tone_type_dtmf;
-#if 0
-        dtmf_play(ausrv, event, volume, duration * 1000);
-#else
+        if (tone_sender[TONE_DTMF][0])
+            TRACE("%s(): got request to play the second DTMF tone", __FUNCTION__);
+
+        strncpy(tone_sender[TONE_DTMF], sender, DBUS_SENDER_MAXLEN);
         dtmf_play(ausrv, event, volume, 0);
-#endif
     }
     else {
         switch (event) {
@@ -142,13 +140,16 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
         case 74:     indtype = TONE_ERROR;       break;
         case 79:     indtype = TONE_WAIT;        break;
         case 70:     indtype = TONE_RING;        break;
-         
+
         default:
             LOG_ERROR("%s(): invalid event %d", __FUNCTION__, event);
             return FALSE;
         }
 
-        tone_type = tone_type_indicator;
+        if (tone_sender[TONE_INDICATOR][0])
+            TRACE("%s(): got request to play the second indicator tone", __FUNCTION__);
+
+        strncpy(tone_sender[TONE_INDICATOR], sender, DBUS_SENDER_MAXLEN);
         indicator_play(ausrv, indtype, volume, duration * 1000);
     }
 
@@ -158,18 +159,27 @@ static int start_event_tone(DBusMessage *msg, struct tonegend *tonegend)
 static int stop_tone(DBusMessage *msg, struct tonegend *tonegend)
 {
     struct ausrv *ausrv = tonegend->ausrv_ctx;
+    char         *sender;
 
     (void)msg;
 
-    TRACE("%s()", __FUNCTION__);
-
-    switch (tone_type) {
-    case tone_type_indicator:  indicator_stop(ausrv, KILL_STREAM);      break;
-    case tone_type_dtmf:       dtmf_stop(ausrv);                        break;
-    default:                                                            break;
+    sender = (char *)dbus_message_get_sender(msg);
+    if (!strncmp(sender, tone_sender[TONE_DTMF], DBUS_SENDER_MAXLEN)) {
+        TRACE("%s(): stop DTMF tone", __FUNCTION__);
+        dtmf_stop(ausrv);
+        tone_sender[TONE_DTMF][0] = 0;
+    } else if (!strncmp(sender, tone_sender[TONE_INDICATOR], DBUS_SENDER_MAXLEN)) {
+        TRACE("%s(): stop indicator tone", __FUNCTION__);
+        indicator_stop(ausrv, KILL_STREAM);
+        tone_sender[TONE_INDICATOR][0] = 0;
+    } else {
+        /* In fallback the safest variant is to stop both type of streams */
+        TRACE("%s(): stop DTMF and/or indicator tones", __FUNCTION__);
+        dtmf_stop(ausrv);
+        indicator_stop(ausrv, KILL_STREAM);
+        tone_sender[TONE_DTMF][0] = 0;
+        tone_sender[TONE_INDICATOR][0] = 0;
     }
-
-    tone_type = tone_type_notone;
 
     return TRUE;
 }
