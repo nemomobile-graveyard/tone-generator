@@ -494,56 +494,38 @@ void stream_free_properties(void *proplist)
 
 static void state_callback(pa_stream *pastr, void *userdata)
 {
-#define CHECK_STREAM(s,p) if (!s || s->pastr != p) { goto confused; }
+    struct stream *stream = (struct stream *)userdata;
 
-    struct stream      *stream = (struct stream *)userdata;
-    pa_context         *pactx  = pa_stream_get_context(pastr);
-    pa_context_state_t  ctxst  = pa_context_get_state(pactx);
-    int                 err;
-    const char         *strerr;
-    
-    if (ctxst != PA_CONTEXT_TERMINATED && ctxst != PA_CONTEXT_FAILED) {
-
-        switch (pa_stream_get_state(pastr)) {
-            
-        case PA_STREAM_CREATING:
-            CHECK_STREAM(stream, pastr);
-            TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
-            break;
-            
-        case PA_STREAM_TERMINATED:
-            CHECK_STREAM(stream, pastr);
-            TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
-            
-            free(stream->name);
-            free(stream);
-            
-            break;
-            
-        case PA_STREAM_READY:
-            CHECK_STREAM(stream, pastr);
-            TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
-            break;
-            
-        case PA_STREAM_FAILED:
-        default:
-            if ((err = pa_context_errno(pactx))) {
-                if ((strerr = pa_strerror(err)) != NULL)
-                    LOG_ERROR("Stream error: %s", strerr);
-                else
-                    LOG_ERROR("Stream error");
-            }
-            break;
-        }
+    if (!stream || stream->pastr != pastr) {
+        LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
+        return;
     }
 
-    return;
+    switch (pa_stream_get_state(pastr)) {
+        case PA_STREAM_UNCONNECTED:
+            TRACE("%s(): stream '%s' unconnected", __FUNCTION__, stream->name);
+            break;
 
- confused:
-    LOG_ERROR("%s(): confused with data structures", __FUNCTION__);
-    return;
+        case PA_STREAM_CREATING:
+            TRACE("%s(): stream '%s' creating", __FUNCTION__, stream->name);
+            break;
 
-#undef CHECK_STREAM
+        case PA_STREAM_READY:
+            TRACE("%s(): stream '%s' ready", __FUNCTION__, stream->name);
+            break;
+
+        case PA_STREAM_TERMINATED:
+            TRACE("%s(): stream '%s' terminated", __FUNCTION__, stream->name);
+            free(stream->name);
+            free(stream);
+            break;
+
+        default:
+        case PA_STREAM_FAILED:
+            LOG_ERROR("%s(): Stream error: %s", __FUNCTION__,
+                      pa_strerror(pa_context_errno(pa_stream_get_context(pastr))));
+            break;
+    }
 }
 
 
@@ -749,8 +731,8 @@ static void flush_callback(pa_stream *pastr, int success, void *userdata)
     else
         TRACE("%s(): stream '%s' flushed", __FUNCTION__, stream->name);
 
-    pa_stream_unref(pastr);
     pa_stream_disconnect(pastr);
+    pa_stream_unref(pastr);
 }
 
 
@@ -768,8 +750,8 @@ static void drain_callback(pa_stream *pastr, int success, void *userdata)
     else
         TRACE("%s(): stream '%s' drained", __FUNCTION__, stream->name);
 
-    pa_stream_unref(pastr);
     pa_stream_disconnect(pastr);
+    pa_stream_unref(pastr);
 }
 
 
