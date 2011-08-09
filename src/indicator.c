@@ -35,6 +35,10 @@ USA.
 
 #define MAX_TONE_LENGTH (1 * 60 * 1000000)
 
+/* Special case for shorter tones, because we don't want to keep a silent
+ * stream around for a long time after playing the actual tone. */
+#define MAX_SHORT_TONE_LENGTH (1 * 5 * 1000000)
+
 #define LOG_ERROR(f, args...) log_error(logctx, f, ##args)
 #define LOG_INFO(f, args...) log_error(logctx, f, ##args)
 #define LOG_WARNING(f, args...) log_error(logctx, f, ##args)
@@ -140,12 +144,14 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         case STD_ANSI:
         case STD_ATNT:
             tone_create(stream, type, 425, vol, 200000, 200000, 0,200000);
+            timeout = MAX_SHORT_TONE_LENGTH;
             break;
         case STD_JAPAN:
             tone_create(stream, type, 400, vol, 3000000, 1000000, 0,0);
+            /* The Japan standard tone is repeating, so I guess we need to wait 60s anyway. */
+            timeout = MAX_TONE_LENGTH;
             break;
         }
-        timeout = MAX_TONE_LENGTH;
         break;
         
     case TONE_RADIO_NA:
@@ -158,7 +164,7 @@ void indicator_play(struct ausrv *ausrv, int type, uint32_t vol, int dur)
         case STD_JAPAN:
             break;
         }
-        timeout = MAX_TONE_LENGTH;
+        timeout = MAX_SHORT_TONE_LENGTH;
         break;
         
     case TONE_ERROR:
