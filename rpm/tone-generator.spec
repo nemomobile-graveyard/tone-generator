@@ -4,7 +4,7 @@ Version:    1.5
 Release:    1
 Group:      System/Daemons
 License:    LGPLv2.1
-URL:        http://meego.gitorious.org/maemo-multimedia/tone-generator
+URL:        https://github.com/nemomobile/tone-generator
 Source0:    %{name}-%{version}.tar.gz
 Source1:    %{name}.service
 Requires:   pulseaudio
