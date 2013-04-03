@@ -23,7 +23,7 @@ Tone generator daemon for call progress indication and DTMF
 
 %build
 
-%configure --disable-static
+%reconfigure --disable-static
 make %{?jobs:-j%jobs}
 
 %install
