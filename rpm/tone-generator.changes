@@ -1,0 +1,9 @@
+* Fri Nov 09 2012 Tom Swindell <t.swindell@rubyx.co.uk> - 1.5
+- Fixed issue in .service file for systemd startup
+
+* Tue Oct 30 2012 Tom Swindell <t.swindell@rubyx.co.uk> - 1.5
+- Added systemd startup file and removed packaging of xdg autostart file
+
+* Sun Jul 29 2012 Tom Swindell <t.swindell@rubyx.co.uk> - 1.5
+- Initial project import.
+
