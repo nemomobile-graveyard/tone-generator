@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Tonegend
+Exec=/usr/bin/tonegend -b 100 -r 20 --volume-dtmf 50
+Comment=Tone generator daemon for call progress indication and DTMF
+X-Moblin-Priority=Medium
+X-Meego-Watchdog=Restart
+
