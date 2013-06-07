@@ -3,5 +3,5 @@ Description=Tone generator daemon for call progress indication and DTMF
 Requires=dbus.socket sound.target
 
 [Service]
-ExecStart=/usr/bin/tonegend -b 100 -r 20 --volume-dtmf 50
+ExecStart=/usr/bin/tonegend -b 100 -r 20 --volume-dtmf 15
 Restart=always
