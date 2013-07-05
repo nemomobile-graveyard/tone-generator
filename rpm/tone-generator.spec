@@ -9,6 +9,8 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:    %{name}.service
 Source2:    tonegend.desktop
 Requires:   pulseaudio
+Requires:   systemd
+Requires:   systemd-user-session-targets
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(gobject-2.0)
@@ -31,16 +33,31 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 %make_install
 
-mkdir -p %{buildroot}/usr/lib/systemd/user/
-cp %{_sourcedir}/%{name}.service %{buildroot}/usr/lib/systemd/user/
+mkdir -p %{buildroot}%{_libdir}/systemd/user/user-session.target.wants
+install -m 0644  %SOURCE1 %{buildroot}%{_libdir}/systemd/user/
+ln -s ../tone-generator.service %{buildroot}%{_libdir}/systemd/user/user-session.target.wants/
+
 
 mkdir -p %{buildroot}/etc/xdg/autostart/
-cp %SOURCE2 %{buildroot}/etc/xdg/autostart/
+install -m 0644 %SOURCE2 %{buildroot}/etc/xdg/autostart/
+
+%post
+if [ "$1" -ge 1 ]; then
+systemctl-user daemon-reload || :
+systemctl-user restart tone-generator.service || :
+fi
+
+%postun
+if [ "$1" -eq 0 ]; then
+systemctl-user stop tone-generator.service || :
+systemctl-user daemon-reload || :
+fi
 
 %files
 %defattr(-,root,root,-)
 /usr/bin/tonegend
 %config /etc/dbus-1/system.d/tone-generator.conf
 /usr/lib/systemd/user/%{name}.service
+/usr/lib/systemd/user/user-session.target.wants/%{name}.service
 %exclude /etc/xdg/autostart/tonegend.desktop
 
