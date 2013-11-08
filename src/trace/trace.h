@@ -24,7 +24,11 @@ USA.
 
 #include <stdio.h>
 
+#ifdef ENABLE_TRACE
 #define trace_write(c, l, t, f, args...) printf(f "\n", ##args)
+#else
+#define trace_write(c, l, t, f, args...) do {} while(0)
+#endif
 
 #endif /* __NOTIF_TRACE_H__ */
 

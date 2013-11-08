@@ -15,6 +15,17 @@ PKG_CHECK_MODULES(DEPS, dbus-glib-1 dbus-1 gobject-2.0 glib-2.0 libpulse libpuls
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
+AC_ARG_ENABLE([trace],
+    AS_HELP_STRING([--enable-trace],[enable debug tracing.]),
+        [
+            case "${enableval}" in
+                yes) AC_DEFINE([ENABLE_TRACE], [1]) ;;
+                no) ;;
+                *) AC_MSG_ERROR(bad value ${enableval} for --enable-trace) ;;
+            esac
+        ])
+
+
 AC_CONFIG_FILES([Makefile \
 		 src/Makefile])
 
